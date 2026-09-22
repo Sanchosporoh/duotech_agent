@@ -1,0 +1,5 @@
+﻿incident_id,start_hour,end_hour,true_cause,true_wells,physical_loss_tpd
+INC-001,6,9,degraded_esp,W_BEL_27_TLBB,4.6
+INC-002,11,13,gathering_backpressure,W_BEL_23_TLBB; W_BEL_24_TLBB; W_BEL_29_TLBB,10.8
+INC-003,15,18,well_shutdown_power,W_BEL_22_TLBB,29.61
+INC-004,21,22,separator_meter_bias,,0.0

@@ -1,0 +1,54 @@
+# Python and test caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+
+# Local environments and secrets
+.venv/
+venv/
+.env
+.env.*
+*.pem
+*.key
+
+# PetEx source models and mutable working copies
+# These files may contain proprietary field models and are not source code.
+IM_2022_06/
+runtime/
+petex_passport_ima/
+*.Out
+*.tpd
+*.gap
+*.gapprs
+*.pxb
+*.pxr
+*.vlp
+
+# Runtime state, calculation caches and local actions
+data/live/
+runs/
+tmp/
+*.log
+*.lock
+*.tmp
+
+# Local diagnostic screenshots and generated dashboard logs
+data/dashboard-*.png
+data/dashboard-*.log
+data/diagram-*.png
+data/*debug*.log
+data/test_*.log
+data/streamlit_*.log
+streamlit.err.log
+streamlit.out.log
+
+# Vendored copy used only to generate diagrams locally
+tools/archify/
+
+# IDE and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+

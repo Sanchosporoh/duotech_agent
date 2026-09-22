@@ -1,0 +1,9 @@
+{
+  "W_BEL_27_TLBB": {
+    "prior_curves": "data/prosper_diagnostic_audit_W27.json",
+    "working_model": "runtime/petex_case/IM_2022_06/W_BEL_27.Out",
+    "pressure_column": "sensor_pressure_bar",
+    "pressure_unit": "bara",
+    "description": "Прежние кривые лифта PROSPER и IPR PI Entry, узел на приёме"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {"title": "Мониторинг добычи и выбор мероприятий", "quality_profile": "showcase", "animation": "none"},
+  "lanes": [
+    {"id":"monitor","label":"Измерения и мониторинг"},
+    {"id":"reason","label":"Гипотезы и проверка"},
+    {"id":"plan","label":"Мероприятия и расчёт"},
+    {"id":"human","label":"Инженер и исполнение"},
+    {"id":"recover","label":"Отказ лицензии","variant":"exception"}
+  ],
+  "mainPath":["measure","incident","hypotheses","diagnosis","sets","gap","forecast","approval","execute"],
+  "nodes":[
+    {"id":"measure","lane":"monitor","col":0,"type":"database","label":"Измерения","sublabel":"CSV · качество","width":132},
+    {"id":"incident","lane":"monitor","col":1,"type":"backend","label":"Отклонение","sublabel":"Ниже −5%","width":132},
+    {"id":"hypotheses","lane":"reason","col":1,"type":"backend","label":"Гипотезы","sublabel":"Codex CLI","width":132},
+    {"id":"diagnosis","lane":"reason","col":2,"type":"external","label":"Проверка причин","sublabel":"PROSPER · ±1,5 бар","width":132},
+    {"id":"registry","lane":"plan","col":1,"type":"database","label":"Потенциалы","sublabel":"Внешний реестр","width":132},
+    {"id":"sets","lane":"plan","col":2,"type":"backend","label":"Наборы мер","sublabel":"Codex CLI · до 3","width":132},
+    {"id":"gap","lane":"plan","col":3,"type":"external","label":"Точные режимы","sublabel":"GAP · ограничения","width":132},
+    {"id":"forecast","lane":"plan","col":4,"type":"backend","label":"Прогноз суток","sublabel":"Минимум недобора","width":132},
+    {"id":"approval","lane":"human","col":4,"type":"security","label":"Инженер","sublabel":"Решение / комментарий","width":132},
+    {"id":"execute","lane":"human","col":5,"type":"database","label":"Исполнение","sublabel":"Локально · по фазам","width":132},
+    {"id":"wait","lane":"recover","col":3,"type":"messagebus","label":"Ждём лицензию","sublabel":"Повтор: 60–900 с","width":132}
+  ],
+  "edges":[
+    {"from":"measure","to":"incident","role":"main"},
+    {"from":"incident","to":"hypotheses","role":"main"},
+    {"from":"hypotheses","to":"diagnosis","role":"main"},
+    {"from":"diagnosis","to":"sets","role":"main"},
+    {"from":"registry","to":"sets","label":"Потенциалы","role":"branch"},
+    {"from":"sets","to":"gap","role":"main"},
+    {"from":"gap","to":"forecast","role":"main"},
+    {"from":"forecast","to":"approval","role":"main"},
+    {"from":"approval","to":"execute","label":"Утверждено","role":"main"},
+    {"from":"approval","to":"hypotheses","label":"Новая версия","role":"return","variant":"dashed"},
+    {"from":"gap","to":"wait","label":"Нет лицензии","role":"error","variant":"security"},
+    {"from":"wait","to":"gap","label":"Повтор","role":"return","variant":"dashed"}
+  ],
+  "cards":[
+    {"dot":"cyan","title":"Наблюдаем, не угадываем","items":["Все скважины: признаки, свежесть, недостающие данные. Отсутствие факта — не инцидент.","Сумма начальных вкладов — опорная оценка, не текущие измеренные дебиты. Потеря на сепараторе не локализует причину."]},
+    {"dot":"emerald","title":"Инженерные расчёты","items":["PROSPER сравнивает конкурирующие изменения. Неоднозначность и нехватка данных блокируют готовность.","GAP меняет только разрешённые контроли. Реестр содержит потенциалы, точные режимы рассчитывает модель."]},
+    {"dot":"amber","title":"Границы текущего MVP","items":["Час продвигается кнопкой; обработка автономна. Фоновый запуск ещё не подключён.","Лучший из рассчитанных допустимых вариантов; учитываем остановки и время эффекта. Экономика и бригады ещё не заданы.","Отклонение закрывает рассмотрение без исполнения. Возврат с комментарием создаёт новую версию. Исходные модели не сохраняем."]}
+  ]
+}

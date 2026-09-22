@@ -1,0 +1,6 @@
+pandas
+numpy
+streamlit
+altair
+pywin32; platform_system == "Windows"
+

@@ -1,0 +1,3 @@
+﻿event_id,timestamp,asset_id,well_id,event_type,description,planned,status
+EV-001,2026-09-10T17:00:00,KUST-01,W_BEL_12,choke_adjustment,Изменение положения штуцера,True,completed
+EV-002,2026-09-11T06:00:00,KUST-01,W_BEL_13,alarm,Рост тока и вибрации УЭЦН,False,active

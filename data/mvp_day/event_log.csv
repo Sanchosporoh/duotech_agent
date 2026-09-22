@@ -1,0 +1,4 @@
+﻿timestamp,source,event,quality
+2026-09-14T15:00:00,VSD_W_BEL_22,frequency_zero,confirmed
+2026-09-14T15:00:00,POWER_W_BEL_22,undervoltage_trip,confirmed
+2026-09-14T21:00:00,SEP_OIL_METER,diagnostic_drift,suspect

@@ -1,0 +1,31 @@
+{
+  "incident_id": "INC-002",
+  "generator": "Проверяемые шаблоны MVP; Codex CLI заменит этап формирования после разрешения",
+  "assessment": "Три постановки отражают разные предпочтения дисциплин. W_BEL_50_TLBB включена во все постановки как обязательный защитный контроль из-за исходного Pзаб 79,51 бар.",
+  "strategies": [
+    {
+      "strategy_id": "technological",
+      "title": "Минимум переключаемых добывающих скважин",
+      "candidate_wells": ["W_BEL_13_TLBB", "W_BEL_12_TLBB", "W_BEL_31_TLBB", "W_BEL_50_TLBB"],
+      "max_change_per_well": 5.0,
+      "engineering_rationale": "Сконцентрировать компенсацию на трёх добывающих скважинах; W50 регулируется только для соблюдения Pзаб.",
+      "tradeoff": "Меньше операций, но большие изменения отдельных режимов."
+    },
+    {
+      "strategy_id": "geological",
+      "title": "Распределённое воздействие",
+      "candidate_wells": ["W_BEL_13_TLBB", "W_BEL_12_TLBB", "W_BEL_23_TLBB", "W_BEL_28_TLBB", "W_BEL_29_TLBB", "W_BEL_30_TLBB", "W_BEL_31_TLBB", "W_BEL_22_TLBB", "W_BEL_25_TLBB", "W_BEL_14_TLBB", "W_BEL_24_TLBB", "W_BEL_26_TLBB", "W_BEL_55_TLBB", "W_BEL_50_TLBB"],
+      "max_change_per_well": 2.0,
+      "engineering_rationale": "Распределить компенсацию малыми изменениями между семью добывающими скважинами; W50 регулируется только для соблюдения Pзаб.",
+      "tradeoff": "Меньше локальное воздействие, но больше переключаемых объектов."
+    },
+    {
+      "strategy_id": "balanced",
+      "title": "Сбалансированная постановка",
+      "candidate_wells": ["W_BEL_13_TLBB", "W_BEL_12_TLBB", "W_BEL_23_TLBB", "W_BEL_28_TLBB", "W_BEL_29_TLBB", "W_BEL_30_TLBB", "W_BEL_31_TLBB", "W_BEL_22_TLBB", "W_BEL_25_TLBB", "W_BEL_14_TLBB", "W_BEL_24_TLBB", "W_BEL_26_TLBB", "W_BEL_55_TLBB", "W_BEL_50_TLBB"],
+      "max_change_per_well": 4.0,
+      "engineering_rationale": "После недостаточного эффекта предыдущей итерации расширить набор доступными ЭЦН и ШВН, сохранив умеренный предел изменения; W50 регулируется только для соблюдения Pзаб.",
+      "tradeoff": "Больше объектов, чем в технологической стратегии, но выше шанс закрыть накопленный недобор без предельного воздействия на одну скважину."
+    }
+  ]
+}

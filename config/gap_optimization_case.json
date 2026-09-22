@@ -1,0 +1,27 @@
+{
+  "case_id": "IMA-OPT-001",
+  "description": "Остановка W_BEL_22_TLBB и компенсация оставшимися насосными скважинами",
+  "incident": {
+    "type": "well_shutdown",
+    "well_id": "W_BEL_22_TLBB",
+    "start_hour": 15,
+    "restored_hour": 19,
+    "horizon_end_hour": 24
+  },
+  "objective": "PRODUCTION",
+  "oil_density_t_m3": 0.908,
+  "constraints": {
+    "maximum_water": "baseline",
+    "minimum_fbhp_bar": 80.0,
+    "water_tolerance_m3d": 0.01
+  },
+  "controls": {
+    "range_policy": "current_plus_minus",
+    "esp_delta_hz": 5.0,
+    "pcp_delta": 5.0,
+    "esp_absolute_min_hz": 30.0,
+    "esp_absolute_max_hz": 60.0,
+    "pcp_absolute_min": 20.0,
+    "pcp_absolute_max": 65.0
+  }
+}

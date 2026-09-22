@@ -1,0 +1,38 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {"title": "Как агент защищает достоверность решения", "quality_profile": "showcase"},
+  "lanes": [
+    {"id":"inputs","label":"Измерения"},
+    {"id":"compute","label":"Автоматический расчёт"},
+    {"id":"decision","label":"Решение инженера"},
+    {"id":"stops","label":"Ожидание и ошибки","variant":"exception"}
+  ],
+  "mainPath":["fact","snapshot","calculate","evidence","proposal","approve"],
+  "nodes":[
+    {"id":"fact","lane":"inputs","col":0,"width":130,"type":"database","label":"Свежий факт","sublabel":"Сепаратор и телеметрия"},
+    {"id":"snapshot","lane":"inputs","col":1,"type":"backend","label":"Снимок данных","sublabel":"Без будущих часов"},
+    {"id":"calculate","lane":"compute","col":1,"type":"backend","label":"Анализ и ИМА","sublabel":"Codex → PROSPER / GAP"},
+    {"id":"evidence","lane":"compute","col":2,"width":155,"type":"security","label":"Проверка результата","sublabel":"Завершение + файл"},
+    {"id":"proposal","lane":"decision","col":2,"type":"backend","label":"Лучший вариант","sublabel":"Недобор и ограничения"},
+    {"id":"approve","lane":"decision","col":3,"width":120,"type":"frontend","label":"Утверждение","sublabel":"Или комментарий инженера"},
+    {"id":"missing","lane":"stops","col":0,"type":"security","label":"Ждём измерений","sublabel":"Нет корректного факта"},
+    {"id":"license","lane":"stops","col":1,"type":"external","label":"Ждём лицензию","sublabel":"Повтор с паузой"},
+    {"id":"invalid","lane":"stops","col":2,"width":125,"type":"security","label":"Нужен разбор","sublabel":"Нет достоверного результата"}
+  ],
+  "edges":[
+    {"from":"fact","to":"snapshot","label":"Факт корректен"},
+    {"from":"snapshot","to":"calculate","label":"Один цикл проекта"},
+    {"from":"calculate","to":"evidence","label":"Файлы расчёта"},
+    {"from":"evidence","to":"proposal","label":"Расчёт завершён"},
+    {"from":"proposal","to":"approve","label":"Прогноз до конца суток"},
+    {"from":"fact","to":"missing","label":"Факта нет","role":"error"},
+    {"from":"calculate","to":"license","label":"Отказ лицензии","role":"error"},
+    {"from":"license","to":"calculate","label":"Настало время повтора","role":"return"},
+    {"from":"evidence","to":"invalid","label":"Файл неполон","role":"error"}
+  ],
+  "cards":[
+    {"dot":"emerald","title":"Что уже защищено","items":["Перестановка строк не создаёт новую задачу. Изменение измерений меняет снимок.","Старый файл сохраняется для разбора, но не заменяет новый результат."]},
+    {"dot":"amber","title":"Что ещё предстоит","items":["Автовосстановление прерванного процесса и полный учёт версий моделей.","Работа без открытого браузера и подтверждение эффекта новым фактом."]}
+  ]
+}

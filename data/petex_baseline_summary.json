@@ -1,0 +1,24 @@
+{
+  "model": "C:\\work-scripts\\First_AI_agent\\runtime\\petex_case\\IM_2022_06\\BEL_PROD.gap",
+  "source_is_working_copy": true,
+  "system_type": "PRODUCTION",
+  "system_code": "PROD",
+  "iterations": 7.0,
+  "well_count": 16,
+  "total_oil_rate": 305.892710721,
+  "total_oil_rate_unit": "Sm3/day",
+  "total_liquid_rate": 327.368702227,
+  "total_liquid_rate_unit": "Sm3/day",
+  "total_mass_rate": 306.654116404,
+  "total_mass_rate_unit": "tonne/day",
+  "wells_with_oil_rate": 16,
+  "calculated_oil_mass_tpd": 277.750581,
+  "calculated_at": "2026-09-14T14:30:32",
+  "constraints": {
+    "maximum_water_m3d": 21.475992,
+    "minimum_fbhp_bar": 80.0,
+    "fbhp_violations": [
+      "W_BEL_50_TLBB"
+    ]
+  }
+}

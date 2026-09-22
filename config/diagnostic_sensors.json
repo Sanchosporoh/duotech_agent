@@ -1,0 +1,10 @@
+{
+  "W_BEL_27_TLBB": {
+    "pressure_location": "pump_intake",
+    "confirmed_by": "user",
+    "pressure_residual_tolerance_bar": 1.5,
+    "pressure_tolerance_reason": "Инженерный выбор пользователя: модель хорошо настроена и имеет невысокую чувствительность",
+    "depth_match_tolerance_ft": 1.0,
+    "depth_tolerance_reason": "Сопоставление узла насоса с глубиной датчика с учётом округления сетки TCC; не допуск давления"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "register_id": "OPP-BEL-001",
+  "description": "Реестр областей потенциала. Точный режим определяет ИМА.",
+  "opportunities": [
+    {"well_id":"W_BEL_13_TLBB","control":"esp_frequency","direction":"increase","potential_oil_tpd":4.1,"maximum_change":5.0,"unit":"Hz","remote":true,"cost_mln_rub":0.15,"geological_risk":"medium","conditions":["Pзаб не ниже 80 бар","в пределах рабочей области УЭЦН"]},
+    {"well_id":"W_BEL_12_TLBB","control":"esp_frequency","direction":"increase","potential_oil_tpd":3.7,"maximum_change":5.0,"unit":"Hz","remote":true,"cost_mln_rub":0.15,"geological_risk":"low","conditions":["Pзаб не ниже 80 бар","в пределах рабочей области УЭЦН"]},
+    {"well_id":"W_BEL_23_TLBB","control":"esp_frequency","direction":"increase","potential_oil_tpd":3.2,"maximum_change":4.0,"unit":"Hz","remote":true,"cost_mln_rub":0.12,"geological_risk":"medium","conditions":["ограничение по току не активно","Pзаб не ниже 80 бар"]},
+    {"well_id":"W_BEL_28_TLBB","control":"esp_frequency","direction":"increase","potential_oil_tpd":3.0,"maximum_change":4.0,"unit":"Hz","remote":true,"cost_mln_rub":0.12,"geological_risk":"high","conditions":["добыча воды объекта не выше лимита","Pзаб не ниже 80 бар"]},
+    {"well_id":"W_BEL_29_TLBB","control":"esp_frequency","direction":"increase","potential_oil_tpd":3.1,"maximum_change":4.0,"unit":"Hz","remote":true,"cost_mln_rub":0.12,"geological_risk":"medium","conditions":["добыча воды объекта не выше лимита","Pзаб не ниже 80 бар"]},
+    {"well_id":"W_BEL_30_TLBB","control":"esp_frequency","direction":"increase","potential_oil_tpd":2.4,"maximum_change":4.0,"unit":"Hz","remote":true,"cost_mln_rub":0.10,"geological_risk":"low","conditions":["Pзаб не ниже 80 бар"]},
+    {"well_id":"W_BEL_31_TLBB","control":"esp_frequency","direction":"increase","potential_oil_tpd":3.0,"maximum_change":4.0,"unit":"Hz","remote":true,"cost_mln_rub":0.10,"geological_risk":"low","conditions":["Pзаб не ниже 80 бар"]},
+    {"well_id":"W_BEL_22_TLBB","control":"esp_frequency","direction":"increase_after_restore","potential_oil_tpd":4.8,"maximum_change":5.0,"unit":"Hz","remote":true,"cost_mln_rub":0.10,"geological_risk":"medium","conditions":["только после успешного ремонта и перезапуска","Pзаб не ниже 80 бар"]},
+    {"well_id":"W_BEL_25_TLBB","control":"pcp_speed","direction":"decrease","potential_oil_tpd":-0.6,"maximum_change":5.0,"unit":"model control unit","remote":true,"cost_mln_rub":0.05,"geological_risk":"low","conditions":["использовать для освобождения ограничения по воде"]},
+    {"well_id":"W_BEL_14_TLBB","control":"pcp_speed","direction":"increase","potential_oil_tpd":2.0,"maximum_change":5.0,"unit":"model control unit","remote":true,"cost_mln_rub":0.10,"geological_risk":"medium","conditions":["Pзаб не ниже 80 бар","скорость ШВН в рабочем диапазоне"]},
+    {"well_id":"W_BEL_24_TLBB","control":"pcp_speed","direction":"increase","potential_oil_tpd":1.7,"maximum_change":5.0,"unit":"model control unit","remote":true,"cost_mln_rub":0.10,"geological_risk":"low","conditions":["Pзаб не ниже 80 бар","скорость ШВН в рабочем диапазоне"]},
+    {"well_id":"W_BEL_26_TLBB","control":"pcp_speed","direction":"increase","potential_oil_tpd":0.9,"maximum_change":5.0,"unit":"model control unit","remote":true,"cost_mln_rub":0.08,"geological_risk":"medium","conditions":["добыча воды объекта не выше лимита","скорость ШВН в рабочем диапазоне"]},
+    {"well_id":"W_BEL_55_TLBB","control":"pcp_speed","direction":"increase","potential_oil_tpd":1.0,"maximum_change":5.0,"unit":"model control unit","remote":true,"cost_mln_rub":0.08,"geological_risk":"low","conditions":["Pзаб не ниже 80 бар","скорость ШВН в рабочем диапазоне"]},
+    {"well_id":"W_BEL_50_TLBB","control":"pcp_speed","direction":"decrease","potential_oil_tpd":-0.1,"maximum_change":5.0,"unit":"model control unit","remote":true,"cost_mln_rub":0.05,"geological_risk":"low","conditions":["защитное регулирование для выполнения Pзаб не ниже 80 бар"]}
+  ]
+}

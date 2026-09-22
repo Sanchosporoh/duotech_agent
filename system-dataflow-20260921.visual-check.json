@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "visual-check",
+  "evidenceKind": "automated-browser",
+  "status": "fail",
+  "visualReview": "pending",
+  "artifact": {
+    "path": "C:\\work-scripts\\First_AI_agent\\system-dataflow-20260921.html",
+    "sha256": "0b47e6678a07160d55edbb1424caa10cd1c14e1c8ae784922805919b884b1cf8",
+    "bytes": 817881
+  },
+  "state": {
+    "detail": "read",
+    "motion": "still"
+  },
+  "chrome": {
+    "status": "available",
+    "executable": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+  },
+  "diagnostics": [
+    {
+      "code": "viewer/visual-check-runtime",
+      "severity": "error",
+      "message": "visual-check could not complete its Chrome inspection.",
+      "subject": {
+        "artifact": "C:\\work-scripts\\First_AI_agent\\system-dataflow-20260921.html"
+      },
+      "evidence": {
+        "reason": "Chrome DevTools process exit failed: Chrome closed with exit code 2147483651\nChrome process: exit code 2147483651.\nChrome stderr:\n[30384:21184:0921/165003.994:ERROR:components\\os_crypt\\async\\browser\\os_crypt_win.cc:63] Failed to encrypt: Не удается найти указанный файл. (0x2)\r\n[30384:27756:0921/165004.094:ERROR:chrome\\installer\\util\\google_update_settings_win.cc:270] Failed opening key Software\\Google\\Update\\ClientStateMedium\\{8A69D345-D564-463c-AFF1-A69D9E530F96} to set usagestats; result: 5\r\n[30384:26936:0921/165004.234:ERROR:components\\password_manager\\core\\browser\\password_store\\login_database_async_helper.cc:99] Encryption is not available.\r\n[30384:18700:0921/165004.235:ERROR:components\\password_manager\\core\\browser\\password_store\\login_database_async_helper.cc:99] Encryption is not available.\r\n[30384:21184:0921/165004.455:ERROR:content\\browser\\gpu\\gpu_process_host.cc:1054] GPU process exited unexpectedly: exit_code=-1073741790\r\n[30384:13972:0921/165004.456:ERROR:components\\viz\\host\\persistent_cache_sandboxed_file_factory.cc:153] Failed to open persistent cache files in directory \"C:\\Users\\User1\\AppData\\Local\\Temp\\archify-visual-check-profile-PNbz77\\GPUPersistentCache\\DawnGraphiteCache\\C4LYSEKRQPAHFGXS5Y5GXEPG4SFB3SL3\", error: 0: Процесс не может получить доступ к файлу, так как этот файл занят другим процессом. (0x20)\r\n[30384:21184:0921/165004.502:ERROR:content\\browser\\gpu\\gpu_process_host.cc:1054] GPU process exited unexpectedly: exit_code=-1073741790\r\n[30384:21184:0921/165004.526:ERROR:content\\browser\\gpu\\gpu_process_host.cc:1054] GPU process exited unexpectedly: exit_code=-1073741790\r\n[30384:29080:0921/165004.526:ERROR:components\\viz\\host\\persistent_cache_sandboxed_file_factory.cc:153] Failed to open persistent cache files in directory \"C:\\Users\\User1\\AppData\\Local\\Temp\\archify-visual-check-profile-PNbz77\\GPUPersistentCache\\DawnGraphiteCache\\C4LYSEKRQPAHFGXS5Y5GXEPG4SFB3SL3\", error: 0: Процесс не может получить доступ к файлу, так как этот файл занят другим процессом. (0x20)\r\n[30384:21184:0921/165004.534:ERROR:components\\device_event_log\\device_event_log_impl.cc:211] [16:50:04.534] USB: usb_service_win.cc:346 Failed to parse device interface GUID:\r\n[30384:21184:0921/165004.548:ERROR:content\\browser\\gpu\\gpu_process_host.cc:1054] GPU process exited unexpectedly: exit_code=-1073741790\r\n[30384:21184:0921/165004.552:ERROR:services\\device\\usb\\usb_descriptors.cc:145] Failed to read length for configuration 1.\r\n[30384:21184:0921/165004.552:ERROR:services\\device\\usb\\usb_descriptors.cc:104] Failed to read all configuration descriptors. Expected 2, got 1.\r\n[30384:21184:0921/165004.552:ERROR:components\\device_event_log\\device_event_log_impl.cc:211] [16:50:04.552] USB: usb_device_win.cc:95 Failed to read descriptors from \\\\?\\usb#vid_17ef&pid_a387#301000001#{a5dcbf10-6530-11d2-901f-00c04fb951ed}.\r\n[30384:21184:0921/165004.563:ERROR:content\\browser\\gpu\\gpu_process_host.cc:1054] GPU process exited unexpectedly: exit_code=-1073741790\r\n[30384:28140:0921/165004.563:ERROR:components\\viz\\host\\persistent_cache_sandboxed_file_factory.cc:153] Failed to open persistent cache files in directory \"C:\\Users\\User1\\AppData\\Local\\Temp\\archify-visual-check-profile-PNbz77\\GPUPersistentCache\\DawnGraphiteCache\\C4LYSEKRQPAHFGXS5Y5GXEPG4SFB3SL3\", error: 0: Процесс не может получить доступ к файлу, так как этот файл занят другим процессом. (0x20)\r\n[30384:21184:0921/165004.582:ERROR:content\\browser\\gpu\\gpu_process_host.cc:1054] GPU process exited unexpectedly: exit_code=-1073741790\r\n[30384:21184:0921/165004.582:FATAL:content\\browser\\gpu\\gpu_data_manager_impl_private.cc:417] GPU process isn't usable. Goodbye."
+      },
+      "supportedFixes": [
+        "resolve the reported Chrome inspection error, then rerun visual-check"
+      ]
+    }
+  ],
+  "containment": {
+    "status": "fail",
+    "viewports": []
+  },
+  "readability": {
+    "status": "fail",
+    "minimumProjectedNodeTextPx": 6,
+    "viewports": []
+  },
+  "viewerChrome": {
+    "status": "fail",
+    "viewports": []
+  },
+  "captures": {
+    "status": "fail",
+    "screenshots": [],
+    "contactSheet": null
+  },
+  "sidecars": {
+    "receipt": "system-dataflow-20260921.visual-check.json",
+    "contactSheet": "system-dataflow-20260921.visual-check.html"
+  },
+  "error": "Chrome DevTools process exit failed: Chrome closed with exit code 2147483651\nChrome process: exit code 2147483651.\nChrome stderr:\n[30384:21184:0921/165003.994:ERROR:components\\os_crypt\\async\\browser\\os_crypt_win.cc:63] Failed to encrypt: Не удается найти указанный файл. (0x2)\r\n[30384:27756:0921/165004.094:ERROR:chrome\\installer\\util\\google_update_settings_win.cc:270] Failed opening key Software\\Google\\Update\\ClientStateMedium\\{8A69D345-D564-463c-AFF1-A69D9E530F96} to set usagestats; result: 5\r\n[30384:26936:0921/165004.234:ERROR:components\\password_manager\\core\\browser\\password_store\\login_database_async_helper.cc:99] Encryption is not available.\r\n[30384:18700:0921/165004.235:ERROR:components\\password_manager\\core\\browser\\password_store\\login_database_async_helper.cc:99] Encryption is not available.\r\n[30384:21184:0921/165004.455:ERROR:content\\browser\\gpu\\gpu_process_host.cc:1054] GPU process exited unexpectedly: exit_code=-1073741790\r\n[30384:13972:0921/165004.456:ERROR:components\\viz\\host\\persistent_cache_sandboxed_file_factory.cc:153] Failed to open persistent cache files in directory \"C:\\Users\\User1\\AppData\\Local\\Temp\\archify-visual-check-profile-PNbz77\\GPUPersistentCache\\DawnGraphiteCache\\C4LYSEKRQPAHFGXS5Y5GXEPG4SFB3SL3\", error: 0: Процесс не может получить доступ к файлу, так как этот файл занят другим процессом. (0x20)\r\n[30384:21184:0921/165004.502:ERROR:content\\browser\\gpu\\gpu_process_host.cc:1054] GPU process exited unexpectedly: exit_code=-1073741790\r\n[30384:21184:0921/165004.526:ERROR:content\\browser\\gpu\\gpu_process_host.cc:1054] GPU process exited unexpectedly: exit_code=-1073741790\r\n[30384:29080:0921/165004.526:ERROR:components\\viz\\host\\persistent_cache_sandboxed_file_factory.cc:153] Failed to open persistent cache files in directory \"C:\\Users\\User1\\AppData\\Local\\Temp\\archify-visual-check-profile-PNbz77\\GPUPersistentCache\\DawnGraphiteCache\\C4LYSEKRQPAHFGXS5Y5GXEPG4SFB3SL3\", error: 0: Процесс не может получить доступ к файлу, так как этот файл занят другим процессом. (0x20)\r\n[30384:21184:0921/165004.534:ERROR:components\\device_event_log\\device_event_log_impl.cc:211] [16:50:04.534] USB: usb_service_win.cc:346 Failed to parse device interface GUID:\r\n[30384:21184:0921/165004.548:ERROR:content\\browser\\gpu\\gpu_process_host.cc:1054] GPU process exited unexpectedly: exit_code=-1073741790\r\n[30384:21184:0921/165004.552:ERROR:services\\device\\usb\\usb_descriptors.cc:145] Failed to read length for configuration 1.\r\n[30384:21184:0921/165004.552:ERROR:services\\device\\usb\\usb_descriptors.cc:104] Failed to read all configuration descriptors. Expected 2, got 1.\r\n[30384:21184:0921/165004.552:ERROR:components\\device_event_log\\device_event_log_impl.cc:211] [16:50:04.552] USB: usb_device_win.cc:95 Failed to read descriptors from \\\\?\\usb#vid_17ef&pid_a387#301000001#{a5dcbf10-6530-11d2-901f-00c04fb951ed}.\r\n[30384:21184:0921/165004.563:ERROR:content\\browser\\gpu\\gpu_process_host.cc:1054] GPU process exited unexpectedly: exit_code=-1073741790\r\n[30384:28140:0921/165004.563:ERROR:components\\viz\\host\\persistent_cache_sandboxed_file_factory.cc:153] Failed to open persistent cache files in directory \"C:\\Users\\User1\\AppData\\Local\\Temp\\archify-visual-check-profile-PNbz77\\GPUPersistentCache\\DawnGraphiteCache\\C4LYSEKRQPAHFGXS5Y5GXEPG4SFB3SL3\", error: 0: Процесс не может получить доступ к файлу, так как этот файл занят другим процессом. (0x20)\r\n[30384:21184:0921/165004.582:ERROR:content\\browser\\gpu\\gpu_process_host.cc:1054] GPU process exited unexpectedly: exit_code=-1073741790\r\n[30384:21184:0921/165004.582:FATAL:content\\browser\\gpu\\gpu_data_manager_impl_private.cc:417] GPU process isn't usable. Goodbye."
+}

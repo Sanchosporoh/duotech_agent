@@ -1,0 +1,38 @@
+{
+ "schema_version":1,"diagram_type":"dataflow",
+ "meta":{"title":"Агент добычи: данные, действия и результаты","quality_profile":"showcase","animation":"none","viewBox":[1080,590]},
+ "stages":[{"label":"Источники"},{"label":"Диагностика"},{"label":"Подготовка"},{"label":"Расчёт"},{"label":"Решение"}],
+ "nodes":[
+  {"id":"inputs","stage":0,"row":0,"type":"database","label":"План и измерения","sublabel":"Входные CSV"},
+  {"id":"models","stage":0,"row":1,"type":"database","label":"Модели скважин","sublabel":"PROSPER · рабочие копии"},
+  {"id":"potentials","stage":0,"row":2,"type":"database","label":"Реестр потенциалов","sublabel":"Внешняя методика"},
+  {"id":"snapshot","stage":1,"row":0,"type":"backend","label":"Проверить факт","sublabel":"Код · признаки"},
+  {"id":"reasoning","stage":2,"row":0,"type":"backend","label":"Гипотезы","sublabel":"Codex CLI → JSON"},
+  {"id":"fit","stage":2,"row":1,"type":"external","label":"Проверить состояние","sublabel":"PROSPER → варианты / VLP"},
+  {"id":"plans","stage":2,"row":2,"type":"backend","label":"Выбрать наборы мер","sublabel":"Codex CLI → plans JSON"},
+  {"id":"network","stage":3,"row":2,"type":"external","label":"Рассчитать режимы","sublabel":"GAP → network JSON"},
+  {"id":"choose","stage":4,"row":2,"type":"backend","label":"Сравнить до 24:00","sublabel":"Код → рекомендация"},
+  {"id":"decision","stage":4,"row":1,"type":"security","label":"Решение инженера","sublabel":"lifecycle JSON · версии"},
+  {"id":"actions","stage":4,"row":0,"type":"database","label":"Утверждённые меры","sublabel":"approved_actions JSON"}
+ ],
+ "flows":[
+  {"from":"inputs","to":"snapshot","label":"Факт / план","variant":"emphasis"},
+  {"from":"snapshot","to":"reasoning","label":"Снимок","variant":"emphasis","route":"straight"},
+  {"from":"reasoning","to":"fit","label":"Кандидаты","labelDy":24},
+  {"from":"models","to":"fit","label":"Исходный режим"},
+  {"from":"fit","to":"plans","label":"Состояние сети","labelDy":24},
+  {"from":"potentials","to":"plans","label":"Возможности"},
+  {"from":"plans","to":"network","label":"Выбранные объекты","variant":"emphasis","route":"straight","labelDy":50},
+  {"from":"fit","to":"network","label":"Актуальные VLP","labelDy":-35},
+  {"from":"network","to":"choose","label":"Режимы / эффект","variant":"emphasis"},
+  {"from":"choose","to":"decision","label":"Лучший вариант"},
+  {"from":"decision","to":"actions","label":"Утверждение"},
+  {"from":"actions","to":"snapshot","label":"Эффекты следующих часов","variant":"dashed","route":"top-channel","channelY":85},
+  {"from":"decision","to":"reasoning","label":"Комментарий / версия","variant":"dashed","fromSide":"left","toSide":"top","via":[[850,271],[850,105],[530,105]],"labelAt":[700,116]}
+ ],
+ "cards":[
+  {"dot":"cyan","title":"Где формируется результат","items":["Codex: гипотезы и списки объектов. PROSPER: совместимость причин и VLP. GAP: точные режимы и эффект.","Код: качество данных, инциденты, недобор, сравнение и учёт фаз работ. Все результаты сохраняются в data/live."]},
+  {"dot":"amber","title":"Общие входы расчёта","items":["autonomous_cycle передаёт снимок и результаты между этапами. План/факт и граничные условия доступны последующим этапам, хотя на схеме не дублируются каждой стрелкой.","GAP использует рабочую копию сети, контроли выбранных скважин, воду текущего сепаратора и Pзаб ≥ 80 бар. Прогноз учитывает остановки."]},
+  {"dot":"rose","title":"Отказы и границы","items":["Нет свежего факта — не инцидент. Мало данных или неоднозначная причина — остановка готовности. Нет лицензии — сохранение и повтор через 60–900 с.","Утверждение: локальная имитация. Возврат: новая версия. Отклонение: без исполнения. Фоновый запуск и реальные внешние действия ещё не подключены."]}
+ ]
+}

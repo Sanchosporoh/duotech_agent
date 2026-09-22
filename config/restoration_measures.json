@@ -1,0 +1,21 @@
+{
+  "measures": [
+    {
+      "measure_id": "acid_pump_wash",
+      "title": "Кислотная промывка насоса",
+      "applicable_model_change": "pump",
+      "crew_count": 1,
+      "cost_mln_rub": null,
+      "phases": [
+        {"name": "Выезд и подготовка", "hours": 1, "well_state": "degraded"},
+        {"name": "Остановка и промывка", "hours": 2, "well_state": "stopped"},
+        {"name": "Запуск и контроль", "hours": 1, "well_state": "stopped"}
+      ],
+      "expected_after_completion": "Восстановление исходной характеристики насоса",
+      "after_restore_control": "Подбор частоты промытой скважины в существующем диапазоне с ограничениями сети; прежняя частота не гарантируется",
+      "restoration_guaranteed": false,
+      "required_engineering_confirmation": "Причина ухудшения устранима промывкой; параметр Wear в диагностике описывает характеристику, но сам по себе не доказывает механический износ или отложения",
+      "assumption": "Учебное допущение, согласовано с инженером. Не технологический регламент; затраты и доступность бригады не заданы."
+    }
+  ]
+}

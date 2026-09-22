@@ -1,0 +1,6 @@
+﻿rule_id,parameter,minimum,maximum,unit,severity,comment
+PR-001,oil_rate_tph,0,60,t/h,error,Отрицательный дебит невозможен
+PR-002,watercut_pct,0,100,%,error,Физический диапазон обводнённости
+PR-003,bottomhole_pressure_bar,0,400,bar,error,"Первичный диапазон, требует уточнения"
+PR-004,esp_current_a,0,120,A,warning,"Предварительная граница, требует уточнения"
+PR-005,vibration_mm_s,0,12,mm/s,warning,"Предварительная граница, требует уточнения"

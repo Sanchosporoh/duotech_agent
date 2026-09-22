@@ -1,0 +1,3 @@
+﻿log_file,solution_reached,iterations,max_pressure_drop_difference_bar,max_mass_balance_difference_tpd,calculation_time_seconds,active_constraints
+BEL_INJ.gaplgs,True,1,0.0139157,0.0202656,0.16,
+BEL_PROD.gaplgs,True,7,0.0118774,0.00252964,0.406,Min FBHP Well 'W_BEL_50_TLBB' constraint  limiting : 78.9867 BARg
