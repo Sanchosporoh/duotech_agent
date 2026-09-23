@@ -8,7 +8,7 @@ from src.incident_lifecycle import complete_revision, ensure_incident, load, rec
 
 class IncidentLifecycleTests(unittest.TestCase):
     def test_two_incidents_survive_concurrent_creation(self):
-        with tempfile.TemporaryDirectory() as folder:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as folder:
             path=Path(folder)/"lifecycle.json"
             with ThreadPoolExecutor(max_workers=2) as pool:
                 futures=[pool.submit(ensure_incident,path,incident,"Проверяется")
@@ -17,7 +17,7 @@ class IncidentLifecycleTests(unittest.TestCase):
             self.assertEqual(set(load(path)["incidents"]),{"INC-001","INC-002"})
 
     def test_existing_incident_does_not_rewrite_registry(self):
-        with tempfile.TemporaryDirectory() as folder:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as folder:
             path=Path(folder)/"lifecycle.json"
             first=ensure_incident(path,"INC-001","Проверяется")
             modified=path.stat().st_mtime_ns
@@ -26,7 +26,7 @@ class IncidentLifecycleTests(unittest.TestCase):
             self.assertEqual(path.stat().st_mtime_ns,modified)
 
     def test_return_for_revision_creates_new_version_and_keeps_old_result(self):
-        with tempfile.TemporaryDirectory() as folder:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as folder:
             path=Path(folder)/"lifecycle.json"
             ensure_incident(path,"INC-002","Остановка W22")
             record_decision(path,"INC-002","На доработке","Не менять W13","balanced","Баланс +0.88 т")
@@ -37,7 +37,7 @@ class IncidentLifecycleTests(unittest.TestCase):
             self.assertEqual(incident["stage"],"awaiting_revision_calculation")
 
     def test_completed_revision_returns_to_human_decision(self):
-        with tempfile.TemporaryDirectory() as folder:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as folder:
             root=Path(folder); path=root/"lifecycle.json"
             ensure_incident(path,"INC-002","Остановка W22")
             record_decision(path,"INC-002","На доработке","Не менять W13","balanced","Баланс +0.88 т")

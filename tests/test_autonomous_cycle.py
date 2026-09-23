@@ -14,8 +14,8 @@ class AutonomousCycleTests(unittest.TestCase):
     @patch('src.autonomous_cycle.live_checks.execute',return_value=[])
     @patch('src.autonomous_cycle.live_reasoning.generate')
     def test_runs_all_incidents_and_reuses_same_snapshot(self,generate,checks,planning,adaptation,lifts):
-        generate.side_effect=lambda context,key:{'fingerprint':key,'answer':{'hypotheses':[]}}
-        with tempfile.TemporaryDirectory() as folder:
+        generate.side_effect=lambda root,context,key:{'fingerprint':key,'answer':{'hypotheses':[]}}
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as folder:
             root=Path(folder)
             separator=pd.DataFrame([{'hour':0,'separator_oil_tpd':100,'plan_oil_tpd':110}])
             telemetry=pd.DataFrame([{'hour':0,'well_id':'arbitrary'}])
@@ -43,7 +43,7 @@ class AutonomousCycleTests(unittest.TestCase):
 
     @patch('src.autonomous_cycle.live_reasoning.generate',side_effect=RuntimeError('offline'))
     def test_failure_does_not_loop_on_ui_rerun(self,generate):
-        with tempfile.TemporaryDirectory() as folder:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as folder:
             args=(Path(folder),pd.DataFrame([{'hour':0,'separator_oil_tpd':100,'plan_oil_tpd':110}]),pd.DataFrame([{'hour':0,'well_id':'any'}]),0,pd.DataFrame([{'incident_id':'any','opened_hour':0,'observed_loss_tpd':10}]))
             self.assertEqual(run(*args)['any']['stage'],'needs_attention')
             run(*args)

@@ -110,6 +110,8 @@ PROSPER ранжирует модельные объяснения, но не д
 | `src/calculation_result.py` | Проверка завершённости и сохранение прежних результатов |
 | `src/calculation_dependencies.py` | Отпечатки конфигурации и моделей для инвалидирования кэша |
 | `src/measurement_overview.py` | Телеметрия, плитки вклада скважин и невязка сепаратора |
+| `src/tool_gateway.py` | Единая точка вызова Codex/PROSPER/GAP; режим `AGENT_TOOL_BACKEND=petex` (по умолчанию) или `stub` |
+| `src/tool_stubs.py` | Детерминированные заглушки инструментов для тестов и прогонов без лицензий; результаты помечены `tool_backend: stub` |
 
 Рабочие скрипты OpenServer находятся в `tools/fit_live_prosper.py`, `tools/export_live_vlp.py` и `tools/run_live_gap.py`.
 
@@ -180,9 +182,11 @@ PROSPER ранжирует модельные объяснения, но не д
 ## 11. Как проверять изменения
 
 ```powershell
-python -m unittest discover -s tests -q
-python -m streamlit run dashboard.py --server.port 8503
+C:\work-scripts\venv\Scripts\python.exe -m unittest discover -s tests -q
+C:\work-scripts\venv\Scripts\python.exe -m streamlit run dashboard.py --server.port 8503
 ```
+
+Python окружения проекта: `.venv\Scripts\python.exe`, если создано, иначе общее `C:\work-scripts\venv\Scripts\python.exe`. Системный `python` может не иметь зависимостей (pandas, streamlit).
 
 Для интерфейса пройди минимум следующие точки:
 

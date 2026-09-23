@@ -70,7 +70,7 @@ def _run(root, separator, telemetry, hour, incidents):
             if response.exists():
                 result=json.loads(response.read_text(encoding='utf-8'))
             else:
-                result=live_reasoning.generate(context,key)
+                result=live_reasoning.generate(root,context,key)
                 live_reasoning.save(response,result)
             checks=live_checks.execute(root,context,result['answer'])
             adaptation=live_adaptation.run(root,context,key,result['answer'])

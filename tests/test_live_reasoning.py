@@ -14,8 +14,8 @@ class LiveReasoningTests(unittest.TestCase):
         self.assertNotEqual(key,snapshot(separator,telemetry,0,{'incident_id':'any'})[1])
         self.assertNotEqual(key,snapshot(separator,telemetry,0,{'incident_id':'any'},'new constraint')[1])
 
-    @patch('src.live_reasoning.ask_codex')
+    @patch('src.live_reasoning.tool_gateway.ask_codex')
     def test_unknown_well_is_rejected(self, ask):
         ask.return_value={'hypotheses':[{'candidate_wells':['invented']}],'assessment':'x'}
         with self.assertRaises(ValueError):
-            generate({'telemetry':[{'well_id':'known'}]},'hash')
+            generate(None,{'telemetry':[{'well_id':'known'}]},'hash')

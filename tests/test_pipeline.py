@@ -42,7 +42,7 @@ class PipelineTests(unittest.TestCase):
 
     def test_local_action_does_not_create_duplicate(self):
         hypothesis={"hypothesis_id":"H1","cause":"Проверить УЭЦН","target_wells":["W1"],"selected_tool":"trend_analysis"}
-        with tempfile.TemporaryDirectory() as folder:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as folder:
             path=Path(folder)/"tasks.csv"
             first=create_local_calculation_task(path,"RUN1","K1","2026-09-13T10:00:00",hypothesis)
             second=create_local_calculation_task(path,"RUN2","K1","2026-09-13T10:00:00",hypothesis)

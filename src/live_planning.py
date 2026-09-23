@@ -4,12 +4,9 @@ from src.calculation_result import completed as result_completed, preserve_previ
 import tempfile
 from pathlib import Path
 import pandas as pd
-import subprocess
-import sys
 import hashlib
-from src.codex_cli import ask_codex
 from src.live_reasoning import save
-from src import license_retry
+from src import license_retry, tool_gateway
 
 SCHEMA={'type':'object','additionalProperties':False,'properties':{
     'assessment':{'type':'string'},
@@ -48,7 +45,7 @@ def forecast_need(context):
 
 def prepare(root,context,key,answer,checks,model_state=None):
     need=forecast_need(context)
-    if not need['ready']: return {'stage':'needs_data','need':need}
+    if not need['ready']: return {'stage':'needs_data','need':need,'reason':need['reason']}
     register=json.loads((root/'data'/'opportunity_register_structured.json').read_text(encoding='utf-8'))
     telemetry=pd.DataFrame(context['telemetry'])
     eligible=[]
@@ -97,7 +94,7 @@ def prepare(root,context,key,answer,checks,model_state=None):
             'Пиши пояснения по-русски. opportunities называй «реестром возможностей», maximum_change — '
             '«максимальным допустимым изменением». Не читай файлы и не запускай команды. Верни JSON по схеме. Вход:\n'+json.dumps(payload,ensure_ascii=False))
     with tempfile.TemporaryDirectory(prefix='production_planning_') as folder:
-        result=ask_codex(prompt,SCHEMA,Path(folder))
+        result=tool_gateway.ask_codex(root,prompt,SCHEMA,Path(folder))
     allowed={i['well_id']:i for i in eligible}
     for alternative in result['alternatives']:
         if len(set(alternative['selected_wells']))!=len(alternative['selected_wells']):raise ValueError('Повтор объекта в наборе мероприятий')
@@ -137,7 +134,7 @@ def calculate(root,context,key,plan,eligible):
              'lift_tables':model_state.get('lift_tables',[])}
     preserve_previous(output)
     save(folder/'request.json',request);save(attempt,{'stage':'running'})
-    completed=subprocess.run([sys.executable,str(root/'tools'/'run_live_gap.py'),'--request',str(folder/'request.json'),'--output',str(output)],cwd=root,capture_output=True,text=True,encoding='utf-8',errors='replace')
+    completed=tool_gateway.run_worker(root,'run_live_gap',folder/'request.json',output)
     if completed.returncode or not output.exists():
         error=(completed.stderr or completed.stdout)[-2000:]
         failure=license_retry.failure(root,error)

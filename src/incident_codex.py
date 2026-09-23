@@ -4,26 +4,8 @@ import json
 from pathlib import Path
 import pandas as pd
 from .codex_cli import ask_codex
+from .live_reasoning import SCHEMA
 
-SCHEMA = {
-    "type": "object",
-    "properties": {
-        "assessment": {"type": "string"},
-        "hypotheses": {"type": "array", "minItems": 4, "maxItems": 6, "items": {
-            "type": "object",
-            "properties": {
-                "title": {"type": "string"},
-                "candidate_wells": {"type": "array", "items": {"type": "string"}},
-                "engineering_rationale": {"type": "string"},
-                "verification": {"type": "string"},
-                "missing_data": {"type": "array", "items": {"type": "string"}}
-            },
-            "required": ["title", "candidate_wells", "engineering_rationale", "verification", "missing_data"],
-            "additionalProperties": False
-        }}
-    },
-    "required": ["assessment", "hypotheses"], "additionalProperties": False
-}
 
 def generate(project: Path, incident_id: str) -> dict:
     matrix = pd.read_csv(project / "data" / "ima_shutdown_matrix.csv")

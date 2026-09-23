@@ -4,8 +4,8 @@ import json
 import pandas as pd
 import streamlit as st
 import altair as alt
-from src import day_case, incident_view, incident_lifecycle, live_monitor, potential_register, live_reasoning, live_checks
-from src import autonomous_cycle, live_execution, license_retry
+from src import incident_view, incident_lifecycle, live_monitor, potential_register, live_reasoning, live_checks
+from src import autonomous_cycle, live_execution, license_retry, tool_gateway
 from src import measurement_overview
 from src.calculation_dependencies import fingerprints
 import importlib
@@ -69,13 +69,7 @@ def render(root):
     if not sep_path.exists() or not tel_path.exists():
         st.info('Создайте начальный набор измерений. Далее система читает только CSV; изменения не перегенерируются.')
         if st.button('Создать начальные измерения'):
-            wells,_=day_case.build_hourly_case(root)
-            incident_view.separator_history(wells).to_csv(sep_path,index=False)
-            signals=incident_view.sparse_telemetry(wells)
-            signals=signals.drop(columns=['fbhp_bara','signal'])
-            for column in ['whp_bara','water_cut_pct','gor_m3m3']:
-                signals[column]=float('nan')
-            signals.to_csv(tel_path,index=False)
+            incident_view.write_initial_measurements(root,folder)
             st.rerun()
         return
     try:
@@ -107,6 +101,8 @@ def render(root):
     if b.button('К началу'): st.session_state.live_hour=0; st.rerun()
     c.write(f'Текущий час: {hour:02d}:00')
     license_status(root)
+    if tool_gateway.backend()=='stub':
+        st.warning('Режим заглушек: Codex, PROSPER и GAP не запускаются. Результаты проверяют цепочку и не являются расчётом.')
     errors=live_monitor.validate_inputs(separator,telemetry)
     if errors:
         for error in errors: st.error(error)
@@ -259,23 +255,6 @@ def render(root):
         approvals=live_execution.approval_rows(root)
         if approvals:st.dataframe(pd.DataFrame(approvals),hide_index=True)
         else:st.caption('Утверждённых мероприятий пока нет.')
-    if False:  # Manual input editor retained for a separate test stand, not the agent UI.
-        st.caption(f'Можно редактировать здесь или в файлах {sep_path} и {tel_path}. После сохранения обработка перечитывает данные. Будущие часы скрыты.')
-        st.caption('whp_bara — буферное давление, бар абс.; water_cut_pct — обводнённость, %; gor_m3m3 — газовый фактор, м³/м³. Пустое поле означает отсутствие измерения, не прежнее значение.')
-        sep_visible=separator[separator.hour<=hour].copy()
-        tel_visible=telemetry[telemetry.hour<=hour].copy()
-        edited_sep=st.data_editor(sep_visible,hide_index=True,disabled=['hour','timestamp'],key=f'sep_{hour}')
-        edited_tel=st.data_editor(tel_visible,hide_index=True,disabled=['hour','timestamp'],key=f'tel_{hour}')
-        if st.button('Сохранить измерения и пересчитать'):
-            merged_sep=pd.concat([edited_sep,separator[separator.hour>hour]],ignore_index=True)
-            merged_tel=pd.concat([edited_tel,telemetry[telemetry.hour>hour]],ignore_index=True)
-            validation=live_monitor.validate_inputs(merged_sep,merged_tel)
-            if validation:
-                for error in validation: st.error(error)
-            else:
-                merged_sep.to_csv(sep_path,index=False)
-                merged_tel.to_csv(tel_path,index=False)
-                st.rerun()
     with st.expander('Реестр возможностей'):
         st.dataframe(potential_register.table(root),hide_index=True)
         restoration=json.loads((root/'config'/'restoration_measures.json').read_text(encoding='utf-8'))

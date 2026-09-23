@@ -2,12 +2,10 @@
 import hashlib
 import json
 from src.calculation_result import completed as result_completed, preserve_previous
-import subprocess
-import sys
 import pandas as pd
 from src.live_reasoning import save
 from src.restoration_forecast import horizon
-from src import license_retry
+from src import license_retry, tool_gateway
 
 
 def prepare(root,context,key,plan,model_state):
@@ -37,7 +35,7 @@ def prepare(root,context,key,plan,model_state):
         if waiting:return dict(waiting,ready=False)
         preserve_previous(output)
         save(folder/'request.json',request);save(attempt,{'stage':'running'})
-        completed=subprocess.run([sys.executable,str(root/'tools/run_live_gap.py'),'--request',str(folder/'request.json'),'--output',str(output)],cwd=root,capture_output=True,text=True,encoding='utf-8',errors='replace')
+        completed=tool_gateway.run_worker(root,'run_live_gap',folder/'request.json',output)
         if completed.returncode or not output.exists():
             reason=(completed.stderr or completed.stdout)[-2000:]
             failure=license_retry.failure(root,reason)

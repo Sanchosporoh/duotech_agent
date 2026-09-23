@@ -11,7 +11,7 @@ from src.cycle_lock import acquire
 
 class ChangedInputTests(unittest.TestCase):
     def test_parallel_session_does_not_start_another_cycle(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             root=Path(directory)
             with acquire(root) as locked:
                 self.assertTrue(locked)
@@ -38,7 +38,7 @@ class ChangedInputTests(unittest.TestCase):
 
     @patch('src.autonomous_cycle.live_reasoning.generate')
     def test_missing_current_fact_never_calls_model(self,generate):
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             incidents=pd.DataFrame([{'incident_id':'test','opened_hour':0,'observed_loss_tpd':10}])
             for value in [None,float('nan'),float('inf'),-1]:
                 sep=pd.DataFrame({'hour':[0,1],'plan_oil_tpd':[100,100],'separator_oil_tpd':[90,value]})
@@ -47,7 +47,7 @@ class ChangedInputTests(unittest.TestCase):
             generate.assert_not_called()
 
     def test_failed_save_preserves_previous_result(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             path=Path(directory)/'result.json'
             save(path,{'stage':'completed'})
             original=path.read_bytes()
@@ -57,7 +57,7 @@ class ChangedInputTests(unittest.TestCase):
             self.assertEqual(list(path.parent.glob('*.tmp')),[])
 
     def test_atomic_save_retries_temporary_windows_permission_error(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             path=Path(directory)/'result.json'
             from os import replace as real_replace
             attempts={'count':0}

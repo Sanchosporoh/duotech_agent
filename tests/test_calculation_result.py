@@ -8,7 +8,7 @@ from src import license_retry
 
 class CalculationResultTests(unittest.TestCase):
     def test_only_finished_valid_output_is_reusable(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             root=Path(directory)
             output=root/'result.json'; attempt=root/'attempt.json'
             save(output,{'alternatives':[]})
@@ -23,7 +23,7 @@ class CalculationResultTests(unittest.TestCase):
             self.assertEqual(license_retry.blocked(root,attempt)['stage'],'needs_attention')
 
     def test_retry_preserves_old_output_but_requires_new_file(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             root=Path(directory); output=root/'result.json'
             save(output,{'old':True})
             preserve_previous(output)
@@ -35,7 +35,7 @@ class CalculationResultTests(unittest.TestCase):
             self.assertEqual(len(list(root.iterdir())),1)
 
     def test_empty_lift_table_is_not_accepted(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             root=Path(directory); output=root/'fitted.tpd'; attempt=root/'attempt.json'
             output.touch(); save(attempt,{'stage':'completed'})
             self.assertFalse(completed(output,attempt))

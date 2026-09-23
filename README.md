@@ -79,10 +79,12 @@ python -m streamlit run dashboard.py --server.port 8503
 ## Проверка
 
 ```powershell
-python -m unittest discover -s tests -q
+C:\work-scripts\venv\Scripts\python.exe -m unittest discover -s tests -q
 ```
 
-На момент первой публикации проект содержит 77 автоматических тестов.
+Python окружения проекта: `.venv\Scripts\python.exe`, если создано, иначе общее `C:\work-scripts\venv\Scripts\python.exe`. Системный `python` может не иметь зависимостей (pandas, streamlit). Тесты не читают `data/live/`: временный проект создаётся в `tests/support.py`.
+
+Режим заглушек `AGENT_TOOL_BACKEND=stub` проходит всю цепочку без Codex и PetEx. Он разрешён только в отдельной копии проекта, не в рабочем каталоге; витрина показывает предупреждение. Результаты заглушек не являются расчётом.
 
 ## Синтетические таблицы
 

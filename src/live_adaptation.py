@@ -1,11 +1,9 @@
 """Dispatch configured physical fits using current observations only."""
 import json
-import subprocess
-import sys
 import hashlib
 import pandas as pd
 from src.live_reasoning import save
-from src import license_retry
+from src import license_retry, tool_gateway
 from src.calculation_result import completed as result_completed, preserve_previous
 
 
@@ -56,7 +54,7 @@ def run(root,context,key,answer):
         request.update(well_id=well,working_model=models[well]['working_model'],tolerance_bar=sensors[well]['pressure_residual_tolerance_bar'])
         preserve_previous(output)
         save(folder/'request.json',request);save(attempt,{'well_id':well,'stage':'running'})
-        completed=subprocess.run([sys.executable,str(root/'tools'/'fit_live_prosper.py'),'--request',str(folder/'request.json'),'--output',str(output)],cwd=root,capture_output=True,text=True,encoding='utf-8',errors='replace')
+        completed=tool_gateway.run_worker(root,'fit_live_prosper',folder/'request.json',output)
         if completed.returncode or not output.exists():
             error=dict(license_retry.failure(root,(completed.stderr or completed.stdout)[-2000:]),well_id=well)
             save(attempt,error);results.append(error)
@@ -88,7 +86,7 @@ def prepare_lifts(root,context,adaptation):
         well=fit['well_id']
         signal=telemetry[telemetry.well_id==well].sort_values('hour').iloc[-1]
         request={f:float(signal[f]) for f in ['frequency_hz','sensor_pressure_bar','whp_bara','water_cut_pct','gor_m3m3']}
-        request.update(working_model=models[well]['working_model'],candidate=candidate)
+        request.update(working_model=models[well]['working_model'],candidate=candidate,**tool_gateway.cache_marker())
         digest=hashlib.sha256(json.dumps(request,sort_keys=True).encode()).hexdigest()
         folder=root/'data'/'live'/'lift_tables'/digest
         output=folder/'fitted.tpd';attempt=folder/'attempt.json'
@@ -97,7 +95,7 @@ def prepare_lifts(root,context,adaptation):
             if waiting:return dict(waiting,ready=False)
             preserve_previous(output)
             save(folder/'request.json',request);save(attempt,{'stage':'running'})
-            completed=subprocess.run([sys.executable,str(root/'tools'/'export_live_vlp.py'),'--request',str(folder/'request.json'),'--output',str(output)],cwd=root,capture_output=True,text=True,encoding='utf-8',errors='replace')
+            completed=tool_gateway.run_worker(root,'export_live_vlp',folder/'request.json',output)
             if completed.returncode or not output.exists():
                 reason=(completed.stderr or completed.stdout)[-2000:]
                 error=license_retry.failure(root,reason)

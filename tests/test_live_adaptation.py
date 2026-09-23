@@ -10,12 +10,12 @@ class AdaptationTests(unittest.TestCase):
     def test_stale_unchanged_signal_cannot_be_used_as_current_model_state(self):
         from unittest.mock import patch
         from src.live_reasoning import save
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             root=Path(directory)
             save(root/'config/diagnostic_models.json',{'A':{'working_model':'runtime/A.Out'}})
             save(root/'config/diagnostic_sensors.json',{})
             signals=[{'hour':h,'well_id':'A','frequency_hz':60.,'sensor_pressure_bar':100.} for h in [0,2]]
-            with patch('src.live_adaptation.subprocess.run') as worker:
+            with patch('src.live_adaptation.tool_gateway.run_worker') as worker:
                 for history in [signals,signals+[dict(signals[-1],hour=8,sensor_pressure_bar=120.)]]:
                     context={'hour':6,'telemetry':history}
                     result=run(root,context,'stale',{'hypotheses':[{'candidate_wells':['A']}]})
@@ -26,7 +26,7 @@ class AdaptationTests(unittest.TestCase):
     def test_partial_diagnostic_result_does_not_override_failed_attempt(self):
         from unittest.mock import patch
         from src.live_reasoning import save
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             root=Path(directory)
             save(root/'config/diagnostic_models.json',{'A':{'working_model':'runtime/A.Out'}})
             save(root/'config/diagnostic_sensors.json',{'A':{'pressure_residual_tolerance_bar':1.5}})
@@ -34,7 +34,7 @@ class AdaptationTests(unittest.TestCase):
             folder=root/'data/live/adaptation/dispatch_v2_test/A'
             save(folder/'result.json',{'well_id':'A','candidates':[{'kind':'pump','pressure_compatible':True}]})
             save(folder/'attempt.json',{'stage':'needs_attention','reason':'worker failed'})
-            with patch('src.live_adaptation.subprocess.run') as worker:
+            with patch('src.live_adaptation.tool_gateway.run_worker') as worker:
                 result=run(root,{'hour':6,'telemetry':[signal]},'test',{'hypotheses':[{'candidate_wells':['A']}]})
             self.assertEqual(result[0]['stage'],'needs_attention')
             self.assertNotIn('candidates',result[0])
@@ -43,7 +43,7 @@ class AdaptationTests(unittest.TestCase):
     def test_failed_export_file_is_not_accepted_as_completed(self):
         import hashlib
         from src.live_reasoning import save
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             root=Path(directory);(root/'config').mkdir()
             (root/'config/diagnostic_models.json').write_text(json.dumps({'A':{'working_model':'runtime/A.Out'}}),encoding='utf-8')
             candidate={'kind':'pump','pressure_compatible':True}
@@ -57,7 +57,7 @@ class AdaptationTests(unittest.TestCase):
             result=prepare_lifts(root,{'telemetry':[signal]},[{'well_id':'A','candidates':[candidate]}])
             self.assertFalse(result['ready'])
     def test_absent_pcp_frequency_is_not_zero_or_missing_model(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             root=Path(directory);(root/'config').mkdir()
             (root/'config/diagnostic_models.json').write_text(json.dumps({'A':{'working_model':'runtime/A.Out'}}),encoding='utf-8')
             (root/'config/diagnostic_sensors.json').write_text('{}',encoding='utf-8')
@@ -66,7 +66,7 @@ class AdaptationTests(unittest.TestCase):
             self.assertEqual(result[0]['stage'],'screened')
             self.assertFalse((root/'data').exists())
     def test_ambiguous_pressure_fit_blocks_single_network_characteristic(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             root=Path(directory)
             (root/'config').mkdir()
             (root/'config'/'diagnostic_models.json').write_text('{}',encoding='utf-8')
@@ -75,7 +75,7 @@ class AdaptationTests(unittest.TestCase):
             self.assertFalse((root/'data').exists())
 
     def test_inflow_change_cannot_be_transferred_as_lift_only(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             root=Path(directory)
             (root/'config').mkdir()
             (root/'config'/'diagnostic_models.json').write_text('{}',encoding='utf-8')
@@ -83,7 +83,7 @@ class AdaptationTests(unittest.TestCase):
             self.assertFalse(result['ready'])
             self.assertFalse((root/'data').exists())
     def test_missing_telemetry_does_not_launch_model(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             root=Path(directory)
             (root/'config').mkdir()
             (root/'config'/'diagnostic_models.json').write_text(json.dumps({'A':{'working_model':'runtime/A.Out'}}),encoding='utf-8')
@@ -93,7 +93,7 @@ class AdaptationTests(unittest.TestCase):
             self.assertFalse((root/'data').exists())
 
     def test_unknown_well_is_not_replaced_by_reference_model(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             root=Path(directory)
             (root/'config').mkdir()
             for name in ['diagnostic_models','diagnostic_sensors']:

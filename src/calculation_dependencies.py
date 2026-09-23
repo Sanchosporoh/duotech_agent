@@ -1,6 +1,7 @@
 """Content identities of local inputs that can change a physical recommendation."""
 import hashlib
 import json
+from src import tool_gateway
 
 
 def fingerprints(root):
@@ -28,4 +29,5 @@ def fingerprints(root):
             continue
         with path.open('rb') as stream:
             result[name]=hashlib.file_digest(stream,'sha256').hexdigest()
+    result.update(tool_gateway.cache_marker())
     return result

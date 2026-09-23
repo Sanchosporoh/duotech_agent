@@ -6,8 +6,27 @@ import tempfile
 import os
 import time
 import pandas as pd
-from src.codex_cli import ask_codex
-from src.incident_codex import SCHEMA
+from src import tool_gateway
+
+SCHEMA = {
+    "type": "object",
+    "properties": {
+        "assessment": {"type": "string"},
+        "hypotheses": {"type": "array", "minItems": 4, "maxItems": 6, "items": {
+            "type": "object",
+            "properties": {
+                "title": {"type": "string"},
+                "candidate_wells": {"type": "array", "items": {"type": "string"}},
+                "engineering_rationale": {"type": "string"},
+                "verification": {"type": "string"},
+                "missing_data": {"type": "array", "items": {"type": "string"}}
+            },
+            "required": ["title", "candidate_wells", "engineering_rationale", "verification", "missing_data"],
+            "additionalProperties": False
+        }}
+    },
+    "required": ["assessment", "hypotheses"], "additionalProperties": False
+}
 
 
 def snapshot(separator, telemetry, hour, incident, comment='', version=1, dependencies=None):
@@ -25,7 +44,7 @@ def snapshot(separator, telemetry, hour, incident, comment='', version=1, depend
     return context,hashlib.sha256(encoded.encode('utf-8')).hexdigest()
 
 
-def generate(context, fingerprint):
+def generate(root, context, fingerprint):
     prompt=('Ты помощник инженера по интегрированному моделированию. Используй только наблюдения ниже. '
             'Сформируй конкурирующие гипотезы, конкретные проверки и недостающие данные. '
             'Не объявляй причину подтверждённой и не придумывай результаты модели или замеры. '
@@ -36,7 +55,7 @@ def generate(context, fingerprint):
             'Не используй инструменты. Верни JSON по схеме. Наблюдения:\n'+json.dumps(context,ensure_ascii=False))
     # A separate empty directory keeps model files and future generator data out of CLI cwd.
     with tempfile.TemporaryDirectory(prefix='production_reasoning_') as folder:
-        answer=ask_codex(prompt,SCHEMA,Path(folder))
+        answer=tool_gateway.ask_codex(root,prompt,SCHEMA,Path(folder))
     allowed={row['well_id'] for row in context['telemetry']}
     for item in answer['hypotheses']:
         unknown=set(item['candidate_wells'])-allowed

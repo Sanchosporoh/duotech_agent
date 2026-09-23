@@ -26,7 +26,7 @@ class OverviewTests(unittest.TestCase):
         self.assertEqual(well_statuses(telemetry,1)['Скважина'].tolist(),['Z','Y','A'])
 
     def test_reset_preserves_inputs_and_archives_decisions(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             root=Path(directory)
             save(root/'data/live/approved_actions.json',{'actions':[{'incident_id':'test'}]})
             save(root/'data/live/lifecycle.json',{'incidents':{'test':{}}})

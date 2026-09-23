@@ -66,33 +66,13 @@ def opened_incidents(separator: pd.DataFrame, hour: int, threshold_pct: float = 
     return pd.DataFrame(rows, columns=["incident_id","opened_hour","signal","observed_loss_tpd","status"])
 
 
-def ranked_hypotheses(project: Path, incident_id: str) -> pd.DataFrame:
-    if incident_id == "INC-002":
-        matrix = pd.read_csv(project / "data" / "ima_shutdown_matrix.csv")
-        matrix["predicted_loss_tpd"] = matrix["predicted_oil_loss_sm3d"] * 0.908
-        observed = 29.61
-        matrix["mismatch_tpd"] = (matrix["predicted_loss_tpd"] - observed).abs()
-        matrix["score"] = (100 - matrix["mismatch_tpd"] / observed * 100).clip(lower=0)
-        ranked = matrix.sort_values("mismatch_tpd").head(6).copy()
-        ranked["hypothesis"] = "Остановка " + ranked["well_id"]
-        ranked["evidence"] = "GAP: расчёт полного отключения одной скважины. Близость потери не подтверждает локализацию."
-    else:
-        ranked = pd.DataFrame([
-            {"hypothesis": "Снижение эффективности УЭЦН W_BEL_27_TLBB", "well_id": "W_BEL_27_TLBB", "predicted_loss_tpd": 15.33, "mismatch_tpd": 0.00, "score": 92, "evidence": "Ток и вибрация растут при неизменной частоте; потеря половины режима воспроизведена"},
-            {"hypothesis": "Снижение притока W_BEL_27_TLBB", "well_id": "W_BEL_27_TLBB", "predicted_loss_tpd": 14.70, "mismatch_tpd": .63, "score": 71, "evidence": "Объясняет баланс, но хуже согласуется с телеметрией УЭЦН"},
-            {"hypothesis": "Ограничение ветви системы сбора", "well_id": "W_BEL_23_TLBB", "predicted_loss_tpd": 13.90, "mismatch_tpd": 1.43, "score": 46, "evidence": "Близкий порядок потери, но группового роста линейного давления нет"},
-            {"hypothesis": "Ошибка расходомера сепаратора", "well_id": "—", "predicted_loss_tpd": 0.0, "mismatch_tpd": 15.33, "score": 18, "evidence": "Резервная гипотеза; независимые давления показывают реальное изменение"},
-        ])
-    ranked.insert(0, "rank", range(1, len(ranked) + 1))
-    if incident_id != "INC-002":
-        ranked["predicted_loss_tpd"] = float("nan")
-        ranked["mismatch_tpd"] = float("nan")
-        ranked["evidence"] = [
-            "Телеметрия W27: рост давления приёма и вибрации при неизменной частоте. Ток пока недоступен. Это признаки, не подтверждение причины.",
-            "Альтернативная версия W27. Для различения нужна текущая точка Q–Pзаб и сопоставление с прежней IPR.",
-            "Альтернативная групповая причина. Нужны устьевые и линейные давления; расчёт не выполнен.",
-            "Альтернативная причина сигнала. Нужна независимая проверка измерения сепаратора.",
-        ]
-    ranked["check_source"] = "GAP: полное отключение" if incident_id == "INC-002" else "Телеметрия; расчёт PROSPER не выполнен"
-    ranked["missing_data"] = "Статус оборудования и дополнительные сигналы для локализации" if incident_id == "INC-002" else "Текущий дебит или его диапазон, приведённое Pзаб, устьевое давление, актуальные ГФ и обводнённость"
-    return ranked[["rank", "hypothesis", "well_id", "predicted_loss_tpd", "mismatch_tpd", "evidence", "check_source", "missing_data"]]
+def write_initial_measurements(root: Path, folder: Path) -> None:
+    """Generate the training day once; afterwards the agent reads only these CSV files."""
+    from src import day_case
+    wells, _ = day_case.build_hourly_case(root)
+    folder.mkdir(parents=True, exist_ok=True)
+    separator_history(wells).to_csv(folder / "separator.csv", index=False)
+    signals = sparse_telemetry(wells).drop(columns=["fbhp_bara", "signal"])
+    for column in ["whp_bara", "water_cut_pct", "gor_m3m3"]:
+        signals[column] = float("nan")
+    signals.to_csv(folder / "telemetry.csv", index=False)
