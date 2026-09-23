@@ -6,7 +6,7 @@ from unittest.mock import patch
 from streamlit.testing.v1 import AppTest
 from src import cycle_service, live_reasoning, live_execution
 from src.calculation_dependencies import fingerprints
-from tests.support import make_project
+from tests.support import FIRST, make_project
 
 
 def recommendation(ready=True):
@@ -47,7 +47,7 @@ class DashboardDecisionTests(unittest.TestCase):
         self.assertEqual(len(app.exception),0)
 
     def incident(self, root):
-        return json.loads((root/'data/live/lifecycle.json').read_text(encoding='utf-8'))['incidents']['INC-001']
+        return json.loads((root/'data/live/lifecycle.json').read_text(encoding='utf-8'))['incidents'][FIRST]
 
     def test_approval_button_writes_once_and_delays_effect(self):
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:

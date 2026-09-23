@@ -7,7 +7,7 @@ from unittest.mock import patch
 import pandas as pd
 from src import autonomous_cycle, incident_view, tool_gateway
 from src.calculation_dependencies import fingerprints
-from tests.support import ROOT, make_project
+from tests.support import FIRST, ROOT, make_project
 
 
 def measurements(root):
@@ -43,7 +43,7 @@ class StubCycleTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory, patch.dict(os.environ,{'AGENT_TOOL_BACKEND':'stub'}), \
                 patch('subprocess.run',side_effect=AssertionError('external process started')) as process:
             root=make_project(directory)
-            state=self.run_hour(root,6)['INC-001']
+            state=self.run_hour(root,6)[FIRST]
             self.assertEqual(state['stage'],'awaiting_human_decision',state.get('error'))
             self.assertTrue(state['recommendation']['ready'])
             process.assert_not_called()
@@ -55,13 +55,13 @@ class StubCycleTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory, patch.dict(os.environ,{'AGENT_TOOL_BACKEND':'stub'}), \
                 patch('src.tool_gateway.ask_codex') as codex:
             root=make_project(directory)
-            self.assertEqual(self.run_hour(root,11)['INC-001']['stage'],'needs_data')
+            self.assertEqual(self.run_hour(root,11)[FIRST]['stage'],'needs_data')
             codex.assert_not_called()
 
     def test_incomplete_well_conditions_block_network_state(self):
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory, patch.dict(os.environ,{'AGENT_TOOL_BACKEND':'stub'}):
             root=make_project(directory,conditions=False)
-            state=self.run_hour(root,6)['INC-001']
+            state=self.run_hour(root,6)[FIRST]
             self.assertEqual(state['stage'],'awaiting_model_state')
             self.assertFalse(state['recommendation']['ready'])
 

@@ -36,6 +36,14 @@ def sparse_telemetry(wells: pd.DataFrame) -> pd.DataFrame:
                  "fbhp_bara", "esp_current_a", "vibration_mm_s", "signal"]]
 
 
+def incident_id(point) -> str:
+    """Identity from the opening time: an earlier data correction cannot renumber later incidents."""
+    moment = pd.to_datetime(point.get("timestamp"), errors="coerce")
+    if pd.isna(moment):
+        return f"INC-H{int(point['hour']):02d}"
+    return f"INC-{moment:%Y%m%d-%H%M}"
+
+
 def opened_incidents(separator: pd.DataFrame, hour: int, threshold_pct: float = -5.0) -> pd.DataFrame:
     """Open on first limit crossing and on a new large step while already outside."""
     current = separator[separator["hour"] <= hour].sort_values('hour').reset_index(drop=True).copy()
@@ -49,7 +57,7 @@ def opened_incidents(separator: pd.DataFrame, hour: int, threshold_pct: float = 
     additional_drop = outside & (step_pct <= threshold_pct)
     triggers = current[first_crossing | additional_drop]
     rows = []
-    for number, (index, point) in enumerate(triggers.iterrows(), 1):
+    for index, point in triggers.iterrows():
         is_additional = bool(additional_drop.loc[index])
         if is_additional:
             previous = current.loc[:index].iloc[-2]
@@ -59,7 +67,7 @@ def opened_incidents(separator: pd.DataFrame, hour: int, threshold_pct: float = 
             loss = float(point["plan_oil_tpd"] - point["separator_oil_tpd"])
             signal = "Выход добычи нефти на сепараторе за нижнюю границу"
         rows.append({
-            "incident_id": f"INC-{number:03d}", "opened_hour": int(point["hour"]),
+            "incident_id": incident_id(point), "opened_hour": int(point["hour"]),
             "signal": signal, "observed_loss_tpd": round(loss, 2),
             "status": "Ожидает решения",
         })

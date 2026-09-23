@@ -5,6 +5,9 @@ from pathlib import Path
 from src import incident_view
 
 ROOT = Path(__file__).resolve().parents[1]
+# Incidents of the generated training day, named by their opening time.
+FIRST = 'INC-20260914-0600'
+SECOND = 'INC-20260914-1500'
 
 
 def make_project(root, conditions=True):

@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 import pandas as pd
 from src import autonomous_cycle, cycle_service, incident_view
-from tests.support import ROOT, make_project
+from tests.support import FIRST, ROOT, make_project
 
 
 class CycleServiceTests(unittest.TestCase):
@@ -60,9 +60,9 @@ class ReadOnlyViewTests(unittest.TestCase):
             separator,telemetry,_=cycle_service.load_measurements(root)
             incidents=incident_view.opened_incidents(separator,6)
             with patch('src.autonomous_cycle.live_reasoning.generate',side_effect=AssertionError('calculation started')):
-                self.assertEqual(autonomous_cycle.read_states(root,separator,telemetry,6,incidents)['INC-001']['stage'],'pending')
+                self.assertEqual(autonomous_cycle.read_states(root,separator,telemetry,6,incidents)[FIRST]['stage'],'pending')
             cycle_service.process_hour(root,6)
-            state=autonomous_cycle.read_states(root,separator,telemetry,6,incidents)['INC-001']
+            state=autonomous_cycle.read_states(root,separator,telemetry,6,incidents)[FIRST]
             self.assertEqual(state['stage'],'awaiting_human_decision')
 
     def test_missing_fact_is_shown_without_agent_run(self):
@@ -71,7 +71,7 @@ class ReadOnlyViewTests(unittest.TestCase):
             cycle_service.process_hour(root,6)
             separator,telemetry,_=cycle_service.load_measurements(root)
             state=autonomous_cycle.read_states(root,separator,telemetry,11,incident_view.opened_incidents(separator,11))
-            self.assertEqual(state['INC-001']['stage'],'needs_data')
+            self.assertEqual(state[FIRST]['stage'],'needs_data')
 
 
 class RunAgentCommandTests(unittest.TestCase):

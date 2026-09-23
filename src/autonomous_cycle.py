@@ -1,5 +1,6 @@
 """Run reasoning and available checks once per observed snapshot, independent of UI selection."""
 from datetime import datetime
+import hashlib
 import json
 import math
 from src import live_reasoning, live_checks, incident_lifecycle, live_planning, live_adaptation, restoration_planning, proposal_selection, license_retry
@@ -64,17 +65,20 @@ def run(root, separator, telemetry, hour, incidents):
 
 
 def _run(root, separator, telemetry, hour, incidents):
+    """Diagnose each open incident, then build one field-wide compensation plan.
+
+    The separator deficit belongs to the field, not to one incident: several
+    incidents share one plan, so the same shortfall is never compensated twice.
+    """
     folder=root/'data'/'live'
     statuses={}
     dependencies=fingerprints(root) if not incidents.empty else {}
+    active=[]  # (identity, life, context, key, execution, state, diagnosis)
     for _,row in incidents.iterrows():
         identity=row.incident_id
         life=incident_lifecycle.ensure_incident(folder/'lifecycle.json',identity,'Причина определяется по измерениям')
-        if life['stage']=='closed_rejected':
-            statuses[identity]={'stage':'closed_rejected'}
-            continue
-        if life['stage']=='approved_for_execution':
-            statuses[identity]={'stage':'approved_for_execution'}
+        if life['stage'] in ('closed_rejected','approved_for_execution'):
+            statuses[identity]={'stage':life['stage']}
             continue
         if not fresh_separator_fact(separator,hour):
             statuses[identity]=dict(NO_FRESH_FACT,incident_id=identity)
@@ -99,7 +103,7 @@ def _run(root, separator, telemetry, hour, incidents):
                     live_reasoning.save(execution,previous)
             if previous['stage']=='needs_attention':
                 statuses[identity]=previous
-                continue  # UI reruns must not cause an endless retry loop
+                continue  # repeated ticks must not cause an endless retry loop
         state={'fingerprint':key,'incident_id':identity,'stage':'running','started_at':datetime.now().isoformat()}
         live_reasoning.save(execution,state)
         try:
@@ -110,22 +114,56 @@ def _run(root, separator, telemetry, hour, incidents):
                 live_reasoning.save(response,result)
             checks=live_checks.execute(root,context,result['answer'])
             adaptation=live_adaptation.run(root,context,key,result['answer'])
-            model_state=live_adaptation.prepare_lifts(root,context,adaptation)
-            plan=live_planning.prepare(root,context,key,result['answer'],checks,model_state)
-            if model_state.get('ready') and 'network' in plan:
-                plan['restoration_forecast']=restoration_planning.prepare(root,context,key,plan,model_state)
-            recommendation=proposal_selection.select(context,plan)
-            state.update(stage=plan['stage'],checks=checks,plan=plan,adaptation=adaptation,model_state=model_state,
-                         recommendation=recommendation,
-                         next_step='Наборы мероприятий требуют расчёта на актуальной ИМА; исполнение не разрешено')
-            if recommendation.get('ready'):
-                state.update(stage='awaiting_human_decision',next_step='Утвердить лучший допустимый вариант либо вернуть с комментарием')
-            if license_retry.state(root).get('stage')=='waiting_license':
-                state.update(license_retry.state(root))
+            state.update(checks=checks,adaptation=adaptation)
+            active.append((identity,life,context,key,execution,state,result['answer']))
         except Exception as exc:
             state.update(stage='needs_attention',error=str(exc))
+            live_reasoning.save(execution,state)
+            statuses[identity]=state
+    if not active:
+        return statuses
+    field=_field_plan(root,hour,active,failed=[i for i,s in statuses.items() if s.get('stage')=='needs_attention'])
+    for identity,life,context,key,execution,state,_ in active:
+        state.update({name:field[name] for name in ('stage','plan','model_state','recommendation','next_step','error','reason') if name in field})
+        state['field_plan']={'key':field['key'],'incidents':field['incidents']}
+        if license_retry.state(root).get('stage')=='waiting_license':
+            state.update(license_retry.state(root))
         live_reasoning.save(execution,state)
         if state.get('recommendation',{}).get('ready') and life['stage']=='awaiting_revision_calculation':
             incident_lifecycle.complete_revision(folder/'lifecycle.json',identity,execution,{'comparison':execution},state['recommendation']['selected']['title'],'Актуальные варианты рассчитаны; ожидается решение')
         statuses[identity]=state
     return statuses
+
+
+def _field_plan(root,hour,active,failed):
+    """One compensation plan for all incidents that are open at this hour."""
+    identities=[item[0] for item in active]
+    key=hashlib.sha256(json.dumps(sorted(item[3] for item in active)).encode()).hexdigest()
+    field={'key':key,'incidents':identities,'hour':hour}
+    if failed:
+        field.update(stage='needs_attention',recommendation={'ready':False,'reason':'Диагностика не завершена: '+', '.join(failed)},
+                     reason='Общий план компенсации не строится, пока не завершена диагностика всех открытых инцидентов: '+', '.join(failed))
+        return field
+    # All snapshots share the measurements of this hour; they differ only in incident and comment.
+    context=dict(active[0][2])
+    context.pop('incident',None)
+    context['incidents']=[item[2]['incident'] for item in active]
+    context['engineer_comment']=' | '.join(f"{item[0]}: {item[2]['engineer_comment']}" for item in active if item[2].get('engineer_comment'))
+    answer={'assessment':' '.join(item[6].get('assessment','') for item in active),
+            'hypotheses':[h for item in active for h in item[6]['hypotheses']]}
+    checks=[row for item in active for row in item[5]['checks']]
+    adaptation=list({fit['well_id']:fit for item in active for fit in item[5]['adaptation']}.values())
+    try:
+        model_state=live_adaptation.prepare_lifts(root,context,adaptation)
+        plan=live_planning.prepare(root,context,key,answer,checks,model_state)
+        if model_state.get('ready') and 'network' in plan:
+            plan['restoration_forecast']=restoration_planning.prepare(root,context,key,plan,model_state)
+        recommendation=proposal_selection.select(context,plan)
+        field.update(stage=plan['stage'],plan=plan,model_state=model_state,recommendation=recommendation,
+                     next_step='Наборы мероприятий требуют расчёта на актуальной ИМА; исполнение не разрешено')
+        if recommendation.get('ready'):
+            field.update(stage='awaiting_human_decision',next_step='Утвердить лучший допустимый вариант либо вернуть с комментарием')
+    except Exception as exc:
+        field.update(stage='needs_attention',error=str(exc),recommendation={'ready':False,'reason':str(exc)})
+    live_reasoning.save(root/'data'/'live'/'field_plans'/f'{key}.json',field)
+    return field

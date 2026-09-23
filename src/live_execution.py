@@ -17,15 +17,18 @@ def approval_rows(root):
              'Дата решения':a.get('approved_at','')} for a in load(root)['actions']]
 
 
-def approve(root,incident_id,hour,fingerprint,recommendation,acknowledged=False):
+def approve(root,incident_ids,hour,fingerprint,recommendation,acknowledged=False):
+    """Record one field-wide plan; it covers every incident listed in incident_ids."""
     if not acknowledged:raise ValueError('Подтвердите предварительный характер расчёта и режим имитации')
     if not recommendation.get('ready'):raise ValueError('Нет допустимого рассчитанного предложения')
     if not 0<=hour<23:raise ValueError('Нет оставшегося прогнозного периода')
     data=load(root)
+    incident_ids=[incident_ids] if isinstance(incident_ids,str) else list(incident_ids)
+    incident_id=', '.join(incident_ids)
     identity=f'{incident_id}:{fingerprint}'
     previous=next((a for a in data['actions'] if a['approval_id']==identity),None)
     if previous:return previous
-    action={'approval_id':identity,'incident_id':incident_id,'approved_hour':hour,'fingerprint':fingerprint,
+    action={'approval_id':identity,'incident_id':incident_id,'incident_ids':incident_ids,'approved_hour':hour,'fingerprint':fingerprint,
             'approved_at':datetime.now().isoformat(),'proposal':recommendation['selected'],'mode':'local_simulation'}
     data['actions'].append(action)
     save(root/'data/live/approved_actions.json',data)
@@ -36,6 +39,8 @@ def apply(root,separator,telemetry):
     separator=separator.copy();telemetry=telemetry.copy()
     separator['execution_effect_oil_tpd']=0.
     separator['execution_effect_water_m3d']=0.
+    # The agent must recognise its own approved regimes: they are not unexplained changes.
+    telemetry['control_source']='measured'
     actions=load(root)['actions']
     for action in sorted(actions,key=lambda a:a['approved_at']):
         start=action['approved_hour']+1
@@ -49,15 +54,19 @@ def apply(root,separator,telemetry):
             separator.loc[mask,'execution_effect_oil_tpd']=prior_oil+phase['oil_delta_tpd']
             separator.loc[mask,'execution_effect_water_m3d']=prior_water+phase['water_delta_m3d']
             for well in phase['wells']:
-                signal=(telemetry.well_id==well['well_id'])&(telemetry.hour>=start)&(telemetry.hour<end)
+                # Only regulated wells get the plan regime, and a measured stop is never overwritten:
+                # it is a new event that the agent has to see.
                 control=well.get('control_optimised')
-                if control is None:control=well.get('control_actual')
+                signal=(telemetry.well_id==well['well_id'])&(telemetry.hour>=start)&(telemetry.hour<end)
+                if 'frequency_hz' in telemetry:signal&=~(telemetry.frequency_hz==0)
                 if control is not None:
                     column='frequency_hz' if 'ESP' in str(well['well_type']) else 'pcp_speed'
                     telemetry.loc[signal,column]=control
+                    telemetry.loc[signal,'control_source']='approved_plan'
             target=phase.get('repair_well_id')
             if target:
                 signal=(telemetry.well_id==target)&(telemetry.hour>=start)&(telemetry.hour<end)
+                telemetry.loc[signal,'control_source']='approved_plan'
                 if phase.get('well_state')=='stopped':telemetry.loc[signal,'frequency_hz']=0.
                 if phase.get('well_state')=='restored':
                     # No calculated bottomhole pressure is passed off as measured intake pressure.

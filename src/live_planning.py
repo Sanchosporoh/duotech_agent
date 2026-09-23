@@ -20,17 +20,26 @@ SCHEMA={'type':'object','additionalProperties':False,'properties':{
 
 
 def forecast_need(context):
-    frame=pd.DataFrame(context['separator']).sort_values('hour')
-    if frame.empty or frame.separator_oil_tpd.isna().any():
-        return {'ready':False,'reason':'Нет полного факта: суточный баланс нельзя считать без оценки пропущенных часов'}
-    if list(frame.hour)!=list(range(context['hour']+1)):
-        return {'ready':False,'reason':'В истории пропущены часы'}
+    frame=pd.DataFrame(context['separator'])
+    if frame.empty:
+        return {'ready':False,'reason':'Нет факта сепаратора'}
+    frame=frame.set_index('hour').reindex(range(context['hour']+1))
     last=frame.iloc[-1]
-    remaining=23-context['hour']
+    if pd.isna(last.separator_oil_tpd) or pd.isna(last.plan_oil_tpd):
+        return {'ready':False,'reason':'Нет факта и плана текущего часа'}
     hourly_loss=frame.plan_oil_tpd-frame.separator_oil_tpd
-    completed_deficit=float((hourly_loss.iloc[:-1]/24).sum())
-    response_delay_deficit=float(hourly_loss.iloc[-1]/24)
+    # A past gap is estimated from the neighbouring measured hours as a range;
+    # the need uses the worse bound, the better bound is shown for transparency.
+    estimated=[int(h) for h in hourly_loss.index[hourly_loss.isna()]]
+    low,high=hourly_loss.copy(),hourly_loss.copy()
+    for hour in estimated:
+        neighbours=[v for v in (hourly_loss.loc[:hour].dropna().tail(1).tolist()+hourly_loss.loc[hour:].dropna().head(1).tolist())]
+        low[hour],high[hour]=min(neighbours),max(neighbours)
+    remaining=23-context['hour']
+    completed_deficit=float((high.iloc[:-1]/24).sum())
+    response_delay_deficit=float(high.iloc[-1]/24)
     deficit=completed_deficit+response_delay_deficit
+    deficit_low=float((low/24).sum())
     if remaining<=0:
         return {'ready':False,'reason':'Сутки закончились: нужен новый прогнозный горизонт'}
     current_loss=max(0.,float(last.plan_oil_tpd-last.separator_oil_tpd))
@@ -40,7 +49,11 @@ def forecast_need(context):
             'required_extra_oil_tpd':required,'completed_deficit_t':completed_deficit,
             'response_delay_deficit_t':response_delay_deficit,'current_loss_tpd':current_loss,
             'recovery_component_tpd':recovery,'effect_start_hour':context['hour']+1,
-            'assumption':'До начала эффекта в следующем часу сохраняется текущий темп; затем он сохраняется до 24:00. Это предварительная оценка, не прогноз ИМА'}
+            'estimated_hours':estimated,'net_deficit_range_t':[deficit_low,deficit],
+            'assumption':'До начала эффекта в следующем часу сохраняется текущий темп; затем он сохраняется до 24:00. Это предварительная оценка, не прогноз ИМА'
+                +('' if not estimated else f". Нет факта за {', '.join(f'{h:02d}:00' for h in estimated)}: потеря этих часов оценена по соседним замерам; "
+                  +(f'накопленный недобор {deficit:.2f} т (соседние замеры совпадают)' if abs(deficit-deficit_low)<.005 else
+                    f'накопленный недобор в диапазоне {deficit_low:.2f}…{deficit:.2f} т, для потребности взята худшая граница'))}
 
 
 def prepare(root,context,key,answer,checks,model_state=None):

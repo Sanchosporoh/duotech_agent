@@ -23,17 +23,20 @@ def run(root,context,key,answer):
     telemetry=pd.DataFrame(context['telemetry'])
     results=[]
     for well in sorted({w for h in answer['hypotheses'] for w in h['candidate_wells']}):
-        if well not in models or 'working_model' not in models[well]:
-            results.append({'well_id':well,'stage':'needs_data','reason':'Не подключена рабочая модель PROSPER'});continue
         history=telemetry[(telemetry.well_id==well)&(telemetry.hour<=context['hour'])].sort_values('hour') if 'well_id' in telemetry else pd.DataFrame()
         if history.empty:
             results.append({'well_id':well,'stage':'needs_data','reason':'Нет телеметрии указанной скважины'});continue
         current=history.iloc[-1]
         first=history.iloc[0]
-        if current.hour!=context['hour']:
-            results.append({'well_id':well,'stage':'needs_data','reason':'Нет свежей телеметрии. Текущее состояние скважины неизвестно.'});continue
+        # A fresh measured stop goes to GAP as a disabled well; no lift model is needed for it.
         if current.get('frequency_hz')==0 and current.hour==context['hour']:
             results.append({'well_id':well,'stage':'screened','reason':'Свежий сигнал остановки: внести остановку в GAP; рабочий лифт не рассчитывается'});continue
+        if well not in models or 'working_model' not in models[well]:
+            if current.get('control_source')=='approved_plan':
+                results.append({'well_id':well,'stage':'screened','reason':'Режим задан утверждённым планом; модель PROSPER не подключена — в сети используется режим плана как допущение'});continue
+            results.append({'well_id':well,'stage':'needs_data','reason':'Не подключена рабочая модель PROSPER'});continue
+        if current.hour!=context['hour']:
+            results.append({'well_id':well,'stage':'needs_data','reason':'Нет свежей телеметрии. Текущее состояние скважины неизвестно.'});continue
         same_pressure=pd.notna(current.get('sensor_pressure_bar')) and pd.notna(first.get('sensor_pressure_bar')) and current.sensor_pressure_bar==first.sensor_pressure_bar
         same_control=(pd.isna(current.get('frequency_hz')) and pd.isna(first.get('frequency_hz'))) or (pd.notna(current.get('frequency_hz')) and pd.notna(first.get('frequency_hz')) and current.frequency_hz==first.frequency_hz)
         unchanged=same_pressure and same_control

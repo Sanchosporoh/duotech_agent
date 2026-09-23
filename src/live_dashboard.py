@@ -218,6 +218,9 @@ def render(root):
                 st.warning('Для текущего снимка данных актуального ответа Codex нет.')
             if not recommendation.get('ready') and life['stage']!='approved_for_execution':
                 st.info('Утверждение недоступно: нет актуального допустимого предложения.')
+            covered=execution_state.get('field_plan',{}).get('incidents') or [selected]
+            if len(covered)>1:
+                st.info('План компенсации общий для инцидентов '+', '.join(covered)+': недобор сепаратора один на месторождение. Решение применяется ко всем этим инцидентам.')
             with st.form('live_decision'):
                 decisions=['Утвердить','Вернуть на доработку','Отклонить'] if recommendation.get('ready') else ['Вернуть на доработку','Отклонить']
                 decision=st.radio('Решение инженера',decisions)
@@ -228,8 +231,9 @@ def render(root):
                 if decision=='Утвердить':
                     try:
                         if execution_state.get('fingerprint')!=fingerprint:raise ValueError('Данные изменились; требуется актуальное предложение')
-                        live_execution.approve(root,selected,hour,fingerprint,recommendation,acknowledged)
-                        incident_lifecycle.record_decision(path,selected,'Утверждено',comment,recommendation['selected']['title'],'Предварительный рассчитанный вариант; локальная имитация')
+                        live_execution.approve(root,covered,hour,fingerprint,recommendation,acknowledged)
+                        for identity in covered:
+                            incident_lifecycle.record_decision(path,identity,'Утверждено',comment,recommendation['selected']['title'],'Предварительный рассчитанный вариант; локальная имитация')
                         st.rerun()
                     except ValueError as error:st.error(str(error))
                 elif decision=='Вернуть на доработку' and not comment.strip():
@@ -238,7 +242,8 @@ def render(root):
                     st.error('Доработка уже запрошена; повторная версия пока не создаётся.')
                 else:
                     status='На доработке' if decision=='Вернуть на доработку' else 'Отклонено'
-                    incident_lifecycle.record_decision(path,selected,status,comment,None,'Нет проверенного предложения')
+                    for identity in covered:
+                        incident_lifecycle.record_decision(path,identity,status,comment,None,'Нет проверенного предложения')
                     st.rerun()
             st.dataframe(pd.DataFrame(incident_lifecycle.version_rows(life)),hide_index=True)
     with st.expander('Журнал запусков агента'):

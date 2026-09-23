@@ -20,3 +20,21 @@ class LivePlanningTests(unittest.TestCase):
 
     def test_missing_fact_blocks_forecast(self):
         self.assertFalse(forecast_need({'hour':0,'separator':[{'hour':0,'plan_oil_tpd':100,'separator_oil_tpd':None}]})['ready'])
+
+    def test_past_gap_is_estimated_as_range_with_worse_bound_in_need(self):
+        rows=[{'hour':0,'plan_oil_tpd':240,'separator_oil_tpd':240},  # loss 0
+              {'hour':1,'plan_oil_tpd':240,'separator_oil_tpd':None},
+              # hour 2 is absent entirely
+              {'hour':3,'plan_oil_tpd':240,'separator_oil_tpd':192}]  # loss 48
+        result=forecast_need({'hour':3,'separator':rows})
+        self.assertTrue(result['ready'])
+        self.assertEqual(result['estimated_hours'],[1,2])
+        # Hours 1-2 lie between losses 0 and 48 t/d: 0-4 t together.
+        self.assertEqual(result['net_deficit_range_t'],[2.,6.])
+        self.assertEqual(result['net_deficit_t'],6.)
+        self.assertIn('01:00, 02:00',result['assumption'])
+
+    def test_missing_current_hour_still_blocks_forecast(self):
+        rows=[{'hour':0,'plan_oil_tpd':240,'separator_oil_tpd':240},{'hour':1,'plan_oil_tpd':240,'separator_oil_tpd':None}]
+        self.assertFalse(forecast_need({'hour':1,'separator':rows})['ready'])
+

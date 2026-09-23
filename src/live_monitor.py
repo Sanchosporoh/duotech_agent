@@ -15,7 +15,8 @@ def screen_wells(telemetry,hour,tolerance=1.5):
         elif pd.notna(frequency) and frequency==0:reasons.append('Частота 0 Гц — сигнал остановки')
         else:
             if pd.notna(delta) and abs(delta)>tolerance:reasons.append(f'Давление изменилось на {delta:+.2f} бар; допуск ±{tolerance:g} бар')
-            if pd.notna(frequency) and pd.notna(first.get('frequency_hz')) and frequency!=first.frequency_hz:reasons.append(f'Частота: {first.frequency_hz:g} → {frequency:g} Гц')
+            if pd.notna(frequency) and pd.notna(first.get('frequency_hz')) and frequency!=first.frequency_hz:
+                reasons.append(f'Частота: {first.frequency_hz:g} → {frequency:g} Гц'+(' — режим утверждённого плана' if current.get('control_source')=='approved_plan' else ''))
         if not reasons:reasons.append('В доступных сигналах нет явной аномалии; снижение дебита не исключено')
         if pd.isna(current.get('sensor_pressure_bar')):reasons.append('Нет давления на датчике')
         rows.append({'Скважина':well,'Последний замер':f'{int(current.hour):02d}:00','Частота, Гц':frequency,
@@ -40,10 +41,14 @@ def hypotheses(telemetry, hour, pressure_tolerance_bar=1.5):
         changed_conditions=[key for key in ['whp_bara','water_cut_pct','gor_m3m3']
                             if pd.notna(current.get(key)) and pd.notna(baseline.get(key)) and current[key]!=baseline[key]]
         if pd.notna(frequency) and frequency==0 and pd.notna(previous_frequency) and previous_frequency>0:
+            if current.get('control_source')=='approved_plan':
+                continue  # planned stop of an approved repair
             variants=['Остановка оборудования или потеря питания']
         elif delta is not None and abs(delta)>pressure_tolerance_bar:
             variants=['Изменение лифта','Изменение притока','Изменение газа/воды или ошибка давления']
         elif pd.notna(frequency) and pd.notna(previous_frequency) and frequency!=previous_frequency:
+            if current.get('control_source')=='approved_plan':
+                continue  # the change is the agent's own approved action, not a new event
             variants=['Изменение управляющего режима']
         elif changed_conditions:
             variants=['Изменение условий: '+', '.join(changed_conditions)]

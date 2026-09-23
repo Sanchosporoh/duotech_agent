@@ -31,3 +31,20 @@ class ExecutionTests(unittest.TestCase):
             self.assertTrue((original.separator_oil_tpd==100).all())
             repeated,_=apply(root,original,telemetry)
             pd.testing.assert_frame_equal(result,repeated)
+
+
+class PlannedRegimeTests(unittest.TestCase):
+    def test_plan_sets_only_regulated_wells_and_keeps_measured_stop(self):
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
+            root=Path(directory)
+            wells=[{'well_id':'R','well_type':'OilProducerESP','control_actual':50.,'control_optimised':55.},
+                   {'well_id':'U','well_type':'OilProducerESP','control_actual':40.,'control_optimised':None},
+                   {'well_id':'S','well_type':'OilProducerESP','control_actual':45.,'control_optimised':48.}]
+            approve(root,['I'],0,'key',{'ready':True,'selected':{'phases':[{'hours':3,'oil_delta_tpd':1,'water_delta_m3d':0,'wells':wells}]}},True)
+            separator=pd.DataFrame({'hour':[0,1,2],'separator_oil_tpd':[100.]*3})
+            telemetry=pd.DataFrame({'hour':[1,1,1],'well_id':['R','U','S'],'frequency_hz':[50.,41.,0.]})
+            _,result=apply(root,separator,telemetry)
+            result=result.set_index('well_id')
+            self.assertEqual((result.loc['R','frequency_hz'],result.loc['R','control_source']),(55.,'approved_plan'))
+            self.assertEqual((result.loc['U','frequency_hz'],result.loc['U','control_source']),(41.,'measured'))
+            self.assertEqual((result.loc['S','frequency_hz'],result.loc['S','control_source']),(0.,'measured'))
