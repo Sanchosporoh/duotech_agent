@@ -58,9 +58,9 @@ python -m streamlit run dashboard.py --server.port 8503
 
 ```powershell
 start_agent.bat                                                     # демо: один учебный час в минуту до 23:00
-C:\work-scriptsenv\Scripts\python.exe toolsun_agent.py --once          # один такт
-C:\work-scriptsenv\Scripts\python.exe toolsun_agent.py --loop --clock wall --interval 300   # реальное время
-C:\work-scriptsenv\Scripts\python.exe toolsun_agent.py --reset         # начать сутки заново
+C:\work-scripts\venv\Scripts\python.exe tools\run_agent.py --once          # один такт
+C:\work-scripts\venv\Scripts\python.exe tools\run_agent.py --loop --clock wall --interval 300   # реальное время
+C:\work-scripts\venv\Scripts\python.exe tools\run_agent.py --reset         # начать сутки заново
 ```
 
 Каждый такт пишет запись в `data/live/runs/` (час, итог, стадии инцидентов, длительность, ошибки), часы агента хранятся в `data/live/clock.json`. Витрина только читает записанное агентом, сама обновляется при новом часе и принимает решение инженера. Кнопка «Обработать следующий час сейчас» вызывает тот же такт вручную для демонстрации без планировщика. `AGENT_PROJECT_ROOT` открывает витрину на отдельной копии проекта (например, для режима заглушек).
