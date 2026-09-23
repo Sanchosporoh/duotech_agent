@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 from streamlit.testing.v1 import AppTest
-from src import live_reasoning, live_execution
+from src import cycle_service, live_reasoning, live_execution
 from src.calculation_dependencies import fingerprints
 from tests.support import make_project
 
@@ -29,12 +29,12 @@ class DashboardDecisionTests(unittest.TestCase):
                 _,key=live_reasoning.snapshot(separator,telemetry,hour,incident,dependencies=fingerprints(project))
                 states[row.incident_id]={'stage':'awaiting_human_decision' if ready else 'needs_attention','fingerprint':key,'recommendation':rec}
             return states
-        patches=[patch('src.live_dashboard.autonomous_cycle.run',side_effect=run),
+        patches=[patch('src.live_dashboard.autonomous_cycle.read_states',side_effect=run),
                  patch('src.live_dashboard.live_checks.execute',return_value=[])]
         for item in patches:
             item.start(); self.addCleanup(item.stop)
+        cycle_service.set_clock(root,6,'simulated')
         app=AppTest.from_string(f"from pathlib import Path\nfrom src.live_dashboard import render\nrender(Path({str(root)!r}))")
-        app.session_state['live_hour']=6
         app.run(timeout=30)
         self.assertEqual(len(app.exception),0)
         return app

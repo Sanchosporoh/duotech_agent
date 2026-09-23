@@ -17,6 +17,45 @@ def fresh_separator_fact(separator,hour):
     except (KeyError,TypeError,ValueError):return False
 
 
+NO_FRESH_FACT={'stage':'needs_data','reason':'Нет свежего корректного факта и плана сепаратора на текущий час. Диагностика и оптимизация ожидают измерений.'}
+
+
+def _snapshot(row,life,separator,telemetry,hour,dependencies):
+    version=life['versions'][-1]
+    incident={'incident_id':row.incident_id,'opened_hour':int(row.opened_hour),'observed_loss_tpd':float(row.observed_loss_tpd)}
+    return live_reasoning.snapshot(separator,telemetry,hour,incident,version.get('human_comment',''),version['version'],dependencies)
+
+
+def _execution_path(root,key):
+    return root/'data'/'live'/'executions'/f'proposal_v4_{key}.json'
+
+
+def read_states(root, separator, telemetry, hour, incidents):
+    """What the agent has already written for this snapshot; never starts a calculation."""
+    lifecycle=incident_lifecycle.load(root/'data'/'live'/'lifecycle.json')['incidents']
+    dependencies=fingerprints(root) if not incidents.empty else {}
+    statuses={}
+    for _,row in incidents.iterrows():
+        life=lifecycle.get(row.incident_id)
+        if life is None:
+            statuses[row.incident_id]={'stage':'pending','reason':'Агент ещё не обработал этот инцидент.'}
+            continue
+        if life['stage'] in ('closed_rejected','approved_for_execution'):
+            statuses[row.incident_id]={'stage':life['stage']}
+            continue
+        if not fresh_separator_fact(separator,hour):
+            statuses[row.incident_id]=dict(NO_FRESH_FACT,incident_id=row.incident_id)
+            continue
+        _,key=_snapshot(row,life,separator,telemetry,hour,dependencies)
+        path=_execution_path(root,key)
+        waiting=license_retry.blocked(root)
+        if waiting and not path.exists():
+            statuses[row.incident_id]=dict(waiting,incident_id=row.incident_id)
+            continue
+        statuses[row.incident_id]=json.loads(path.read_text(encoding='utf-8')) if path.exists() else             {'stage':'pending','fingerprint':key,'reason':'Агент ещё не обработал текущие данные этого часа или новую версию после доработки.'}
+    return statuses
+
+
 def run(root, separator, telemetry, hour, incidents):
     with acquire(root) as locked:
         if not locked:
@@ -38,14 +77,11 @@ def _run(root, separator, telemetry, hour, incidents):
             statuses[identity]={'stage':'approved_for_execution'}
             continue
         if not fresh_separator_fact(separator,hour):
-            statuses[identity]={'stage':'needs_data','incident_id':identity,
-                'reason':'Нет свежего корректного факта и плана сепаратора на текущий час. Диагностика и оптимизация ожидают измерений.'}
+            statuses[identity]=dict(NO_FRESH_FACT,incident_id=identity)
             continue
-        version=life['versions'][-1]
-        incident={'incident_id':identity,'opened_hour':int(row.opened_hour),'observed_loss_tpd':float(row.observed_loss_tpd)}
-        context,key=live_reasoning.snapshot(separator,telemetry,hour,incident,version.get('human_comment',''),version['version'],dependencies)
+        context,key=_snapshot(row,life,separator,telemetry,hour,dependencies)
         response=folder/'reasoning'/f'{key}.json'
-        execution=folder/'executions'/f'proposal_v4_{key}.json'
+        execution=_execution_path(root,key)
         execution.parent.mkdir(parents=True,exist_ok=True)
         waiting=license_retry.blocked(root)
         if waiting:

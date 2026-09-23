@@ -26,14 +26,14 @@ def cache_marker():
     return {'tool_backend':'stub'} if backend()=='stub' else {}
 
 
-def _guard(root):
+def guard(root):
     # A stub approval must never reach the engineer's real registry.
     if backend()=='stub' and Path(root).resolve()==REPO:
         raise RuntimeError('Режим заглушек запрещён в рабочем каталоге проекта; используйте отдельную копию')
 
 
 def ask_codex(root,prompt,schema,cwd):
-    _guard(root)
+    guard(root)
     if backend()=='stub':
         from src import tool_stubs
         return tool_stubs.codex(prompt,schema)
@@ -43,7 +43,7 @@ def ask_codex(root,prompt,schema,cwd):
 
 def run_worker(root,script,request,output):
     """Run tools/<script>.py; returns CompletedProcess like subprocess.run."""
-    _guard(root)
+    guard(root)
     if backend()=='stub':
         from src import tool_stubs
         tool_stubs.worker(script,Path(request),Path(output))

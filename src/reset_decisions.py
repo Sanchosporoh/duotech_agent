@@ -22,4 +22,6 @@ def reset(root):
         save(folder/'approved_actions.json',{'actions':[]})
         save(folder/'lifecycle.json',{'incidents':{}})
         save(folder/'decision_reset.json',{'reset_id':identity,'archive':str(archive)})
+        clock=folder/'clock.json'
+        if clock.exists():clock.unlink()  # a new day starts from 00:00
         return archive

@@ -5,7 +5,7 @@ import pandas as pd
 import streamlit as st
 import altair as alt
 from src import incident_view, incident_lifecycle, live_monitor, potential_register, live_reasoning, live_checks
-from src import autonomous_cycle, live_execution, license_retry, tool_gateway
+from src import autonomous_cycle, cycle_service, live_execution, license_retry, tool_gateway
 from src import measurement_overview
 from src.calculation_dependencies import fingerprints
 import importlib
@@ -44,6 +44,12 @@ def license_status(root):
             st.rerun()
 
 
+@st.fragment(run_every='10s')
+def agent_watch(root,seen):
+    # The agent runs in its own process; refresh the page when it has processed a new hour.
+    if cycle_service.clock(root).get('updated_at')!=seen:st.rerun()
+
+
 def check_table(rows):
     frame=pd.DataFrame(rows)
     if 'Инструмент' in frame:
@@ -59,12 +65,6 @@ def check_table(rows):
 def render(root):
     folder=root/'data'/'live'
     folder.mkdir(parents=True,exist_ok=True)
-    reset_file=folder/'decision_reset.json'
-    if reset_file.exists():
-        reset_id=json.loads(reset_file.read_text(encoding='utf-8'))['reset_id']
-        if st.session_state.get('_decision_reset_id')!=reset_id:
-            st.session_state.live_hour=0
-            st.session_state['_decision_reset_id']=reset_id
     sep_path=folder/'separator.csv'; tel_path=folder/'telemetry.csv'
     if not sep_path.exists() or not tel_path.exists():
         st.info('Создайте начальный набор измерений. Далее система читает только CSV; изменения не перегенерируются.')
@@ -72,34 +72,25 @@ def render(root):
             incident_view.write_initial_measurements(root,folder)
             st.rerun()
         return
-    try:
-        separator=pd.read_csv(sep_path)
-        telemetry=pd.read_csv(tel_path)
-    except (OSError,ValueError) as exc:
-        st.error('Не удалось прочитать измерения: '+str(exc))
-        return
-    errors=live_monitor.validate_inputs(separator,telemetry)
-    for label,frame in [('Сепаратор',separator),('Телеметрия',telemetry)]:
-        if 'timestamp' not in frame:
-            errors.append(label+': отсутствует время измерения timestamp')
-        else:
-            frame['timestamp']=pd.to_datetime(frame.timestamp,errors='coerce')
-            if frame.timestamp.isna().any():errors.append(label+': некорректное время измерения')
+    separator,telemetry,errors=cycle_service.load_measurements(root)
     if errors:
         for error in errors:st.error(error)
         return
-    separator,telemetry=live_execution.apply(root,separator,telemetry)
-    for column in ['whp_bara','water_cut_pct','gor_m3m3']:
-        if column not in telemetry:
-            telemetry[column]=float('nan')
     st.markdown('## Мониторинг по входным измерениям')
     with st.expander('Как сейчас работает система',expanded=False):
-        st.write('«＋1 час» имитирует приход измерений. Агент обрабатывает незакрытые инциденты, рассчитывает варианты и выбирает минимальный ожидаемый недобор. Утверждение записывается в локальный реестр; эффект появляется со следующего часа с учётом фаз работ. Возврат с комментарием меняет постановку следующего расчёта.')
-    hour=st.session_state.setdefault('live_hour',0)
-    a,b,c=st.columns([1,1,5])
-    if a.button('＋1 час',disabled=hour>=23): st.session_state.live_hour=hour+1; st.rerun()
-    if b.button('К началу'): st.session_state.live_hour=0; st.rerun()
-    c.write(f'Текущий час: {hour:02d}:00')
+        st.write('Агент работает отдельным процессом (tools/run_agent.py) по расписанию: каждый такт — новый час измерений. Витрина только показывает записанное агентом и принимает решение инженера. Утверждение записывается в локальный реестр; эффект появляется со следующего часа с учётом фаз работ. Возврат с комментарием учитывается в следующем цикле агента.')
+    agent=cycle_service.clock(root)
+    agent_watch(root,agent.get('updated_at'))
+    hour=agent.get('hour')
+    a,b,c=st.columns([2,1,4])
+    if a.button('Обработать следующий час сейчас',disabled=hour is not None and hour>=cycle_service.LAST_HOUR or agent.get('mode')=='wall'):
+        with st.spinner('Агент обрабатывает измерения...'):cycle_service.tick(root)
+        st.rerun()
+    if b.button('Начать сутки заново',disabled=hour is None):cycle_service.reset_clock(root);st.rerun()
+    if hour is None:
+        c.write('Агент ещё не обработал ни одного часа.')
+        return
+    c.write(f"Час агента: {hour:02d}:00 · режим часов: {'реальное время' if agent.get('mode')=='wall' else 'ускоренная имитация'}")
     license_status(root)
     if tool_gateway.backend()=='stub':
         st.warning('Режим заглушек: Codex, PROSPER и GAP не запускаются. Результаты проверяют цепочку и не являются расчётом.')
@@ -125,8 +116,7 @@ def render(root):
         incidents=incident_view.opened_incidents(separator,hour)
         st.dataframe(incidents.rename(columns={'incident_id':'Инцидент','opened_hour':'Час обнаружения','signal':'Что обнаружено','observed_loss_tpd':'Недобор темпа, т/сут','status':'Статус'}),hide_index=True)
         if not incidents.empty:
-            with st.spinner('Агент обрабатывает измерения: гипотезы → доступные проверки...'):
-                execution_states=autonomous_cycle.run(root,separator,telemetry,hour,incidents)
+            execution_states=autonomous_cycle.read_states(root,separator,telemetry,hour,incidents)
             selected=st.selectbox('Инцидент',incidents.incident_id.tolist())
             execution_state=execution_states[selected]
             recommendation=execution_state.get('recommendation',{})
@@ -142,7 +132,7 @@ def render(root):
             if execution_state.get('stage')=='approved_for_execution':
                 st.success('Решение утверждено. Эффекты выполняются по часам из локального реестра.')
             if execution_state.get('error') and execution_state.get('stage')!='waiting_license': st.error('Цикл остановлен: '+execution_state['error'])
-            st.caption('Состояние агента: '+{'running':'Расчёт выполняется','needs_attention':'Работа остановлена — причина указана ниже','awaiting_human_decision':'Предложение готово, требуется утверждение','awaiting_model_state':'Недостаточно данных для расчёта сети','conditional_network_calculated':'Сеть рассчитана, результаты предварительные','approved_for_execution':'Решение утверждено'}.get(execution_state.get('stage'),str(execution_state.get('stage'))))
+            st.caption('Состояние агента: '+{'pending':'Агент ещё не обработал текущие данные','needs_data':'Недостаточно данных для расчёта','waiting_license':'Ожидание лицензии OpenServer','running':'Расчёт выполняется','needs_attention':'Работа остановлена — причина указана ниже','awaiting_human_decision':'Предложение готово, требуется утверждение','awaiting_model_state':'Недостаточно данных для расчёта сети','conditional_network_calculated':'Сеть рассчитана, результаты предварительные','approved_for_execution':'Решение утверждено'}.get(execution_state.get('stage'),str(execution_state.get('stage'))))
             if not recommendation.get('ready'):
                 st.warning('Решение пока не готово: '+execution_state.get('reason',execution_state.get('error',execution_state.get('plan',{}).get('reason',recommendation.get('reason','Нет завершённого допустимого расчёта')))))
             st.markdown('#### Рассмотренные скважины — признаки и доступность данных')
@@ -251,6 +241,11 @@ def render(root):
                     incident_lifecycle.record_decision(path,selected,status,comment,None,'Нет проверенного предложения')
                     st.rerun()
             st.dataframe(pd.DataFrame(incident_lifecycle.version_rows(life)),hide_index=True)
+    with st.expander('Журнал запусков агента'):
+        runs=cycle_service.recent_runs(root)
+        if runs:st.dataframe(pd.DataFrame([{'Запуск':r['run_id'],'Час':f"{r['hour']:02d}:00",'Итог':r['status'],'Длительность, с':r.get('duration_seconds'),
+            'Инциденты':'; '.join(f"{k}: {v['stage']}" for k,v in r.get('incidents',{}).items()),'Ошибки':'; '.join(r.get('errors',[]))} for r in runs]),hide_index=True)
+        else:st.caption('Запусков пока не было.')
     with st.expander('Локальный реестр утверждений'):
         approvals=live_execution.approval_rows(root)
         if approvals:st.dataframe(pd.DataFrame(approvals),hide_index=True)
