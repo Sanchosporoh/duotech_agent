@@ -74,6 +74,23 @@ class ReadOnlyViewTests(unittest.TestCase):
             self.assertEqual(state[FIRST]['stage'],'needs_data')
 
 
+class ProgressTests(unittest.TestCase):
+    def test_each_agent_step_is_visible_before_the_tick_ends(self):
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory, patch.dict(os.environ,{'AGENT_TOOL_BACKEND':'stub'}):
+            root=make_project(directory)
+            steps=[]
+            real=autonomous_cycle._progress
+            def spy(root_,hour,step,done=False):
+                real(root_,hour,step,done)
+                steps.append(step)
+            with patch('src.autonomous_cycle._progress',side_effect=spy):
+                for _ in range(7):cycle_service.tick(root)
+            joined=' | '.join(steps)
+            for fragment in ('гипотезы (LLM)','проверка в PROSPER','наборы мероприятий','расчёт GAP','GAP рассчитан','такт завершён'):
+                self.assertIn(fragment,joined)
+            self.assertTrue(cycle_service.progress(root)['done'])
+
+
 class RunAgentCommandTests(unittest.TestCase):
     def test_command_processes_one_hour_in_a_separate_process(self):
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:

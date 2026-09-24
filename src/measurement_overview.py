@@ -103,7 +103,12 @@ def known_changes(root,telemetry,hour,parts):
 
 
 def render(root, separator, telemetry, hour):
-    st.markdown('#### 1. Что изменилось в телеметрии')
+    _balance(root,separator,telemetry,hour)
+    _telemetry(telemetry,hour)
+
+
+def _telemetry(telemetry, hour):
+    st.markdown('#### 2. Что изменилось в телеметрии')
     statuses=well_statuses(telemetry,hour)
     if statuses.empty:
         st.info('Доступной телеметрии пока нет.')
@@ -127,7 +132,10 @@ def render(root, separator, telemetry, hour):
             st.altair_chart(chart,use_container_width=True)
         else:st.info('Нет значений для графика.')
         st.caption('Изменение сигнала — повод для проверки, а не установленная причина. Отсутствие аномалии не исключает снижение дебита.')
-    with st.expander('2. Из чего складывается добыча сепаратора',expanded=True):
+
+
+def _balance(root, separator, telemetry, hour):
+    with st.expander('1. Из чего складывается добыча сепаратора',expanded=True):
         allocation=baseline_allocation(root)
         if allocation.empty:
             st.info('Нет исходных оценок дебитов скважин. Распределение не построено.')

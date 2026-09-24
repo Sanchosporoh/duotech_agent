@@ -125,6 +125,7 @@ def _run(root, separator, telemetry, hour, incidents):
     for identity,life,context,key,execution,response in pending:
         state={'fingerprint':key,'incident_id':identity,'stage':'running','started_at':datetime.now().isoformat(),'recompute':recompute}
         live_reasoning.save(execution,state)
+        _progress(root,hour,f'{identity}: '+('гипотезы (LLM)' if level=='full' else 'прежний диагноз, пересчёт компенсации'))
         try:
             if level!='full':
                 # Nothing new about the wells: keep the diagnosis of the last full calculation.
@@ -137,8 +138,12 @@ def _run(root, separator, telemetry, hour, incidents):
                 else:
                     result=live_reasoning.generate(root,context,key)
                     live_reasoning.save(response,result)
+                state['hypotheses']=result['answer']
+                live_reasoning.save(execution,state)
+                _progress(root,hour,f'{identity}: гипотезы готовы, проверка в PROSPER')
                 state.update(checks=live_checks.execute(root,context,result['answer']),
                              adaptation=live_adaptation.run(root,context,key,result['answer']))
+                live_reasoning.save(execution,state)
             state['hypotheses']=result['answer']
             active.append((identity,life,context,key,execution,state,result['answer']))
         except Exception as exc:
@@ -146,9 +151,15 @@ def _run(root, separator, telemetry, hour, incidents):
             live_reasoning.save(execution,state)
             statuses[identity]=state
     if not active:
+        _progress(root,hour,'такт завершён',done=True)
         return statuses
     reuse=None if level=='full' else dict(basis['plan'],level=level,model_state=basis['model_state'])
-    field=_field_plan(root,hour,active,failed=[i for i,s in statuses.items() if s.get('stage')=='needs_attention'],reuse=reuse)
+    def publish(step,**fields):
+        # Intermediate results reach the dashboard as soon as each step is done.
+        for item in active:
+            item[5].update(fields);live_reasoning.save(item[4],item[5])
+        _progress(root,hour,step)
+    field=_field_plan(root,hour,active,failed=[i for i,s in statuses.items() if s.get('stage')=='needs_attention'],reuse=reuse,publish=publish)
     field['recompute']=recompute
     _update_basis(basis_path,basis,current,level,active,field)
     for identity,life,context,key,execution,state,_ in active:
@@ -160,7 +171,14 @@ def _run(root, separator, telemetry, hour, incidents):
         if state.get('recommendation',{}).get('ready') and life['stage']=='awaiting_revision_calculation':
             incident_lifecycle.complete_revision(folder/'lifecycle.json',identity,execution,{'comparison':execution},state['recommendation']['selected']['title'],'Актуальные варианты рассчитаны; ожидается решение')
         statuses[identity]=state
+    _progress(root,hour,'такт завершён',done=True)
     return statuses
+
+
+def _progress(root,hour,step,done=False):
+    """Heartbeat for the dashboard: what the agent is doing now."""
+    live_reasoning.save(root/'data'/'live'/'progress.json',{'hour':hour,'step':step,'done':done,
+        'updated_at':datetime.now().isoformat(timespec='milliseconds')})
 
 
 def _update_basis(path,basis,current,level,active,field):
@@ -178,7 +196,7 @@ def _update_basis(path,basis,current,level,active,field):
     live_reasoning.save(path,basis)
 
 
-def _field_plan(root,hour,active,failed,reuse=None):
+def _field_plan(root,hour,active,failed,reuse=None,publish=None):
     """One compensation plan for all incidents that are open at this hour."""
     identities=[item[0] for item in active]
     key=hashlib.sha256(json.dumps(sorted(item[3] for item in active)).encode()).hexdigest()
@@ -198,7 +216,10 @@ def _field_plan(root,hour,active,failed,reuse=None):
     adaptation=list({fit['well_id']:fit for item in active for fit in item[5]['adaptation']}.values())
     try:
         model_state=reuse['model_state'] if reuse else live_adaptation.prepare_lifts(root,context,adaptation)
-        plan=live_planning.prepare(root,context,key,answer,checks,model_state,reuse=reuse)
+        if publish:publish('состояние скважин готово, наборы мероприятий (LLM)',model_state=model_state)
+        plan=live_planning.prepare(root,context,key,answer,checks,model_state,reuse=reuse,
+                                   progress=(lambda p:publish('наборы готовы, расчёт GAP',plan=p)) if publish else None)
+        if publish and 'network' in plan:publish('GAP рассчитан, выбор варианта',plan=plan)
         previous=(reuse or {}).get('restoration_forecast',{})
         if reuse and reuse['level']=='none' and previous.get('network_result') and 'network' in plan:
             plan['restoration_forecast']=restoration_planning.forecast(context,plan,previous['measure'],previous['well_id'],previous['network_result'])

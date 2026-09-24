@@ -20,14 +20,14 @@ def reset(root,fresh=False):
         identity=datetime.now().strftime('%Y%m%d-%H%M%S')+'-'+uuid.uuid4().hex[:8]
         archive=folder/'decision_archive'/identity
         archive.mkdir(parents=True)
-        names=('approved_actions.json','lifecycle.json','escalations.json','field_basis.json','decision_wait.json')
+        names=('approved_actions.json','lifecycle.json','escalations.json','field_basis.json','decision_wait.json','progress.json')
         for name in names:
             path=(folder/name).resolve()
             if not path.is_relative_to(root):raise ValueError('Reset target outside project')
             if path.exists():shutil.copy2(path,archive/name)
         save(folder/'approved_actions.json',{'actions':[]})
         save(folder/'lifecycle.json',{'incidents':{}})
-        for name in ('escalations.json','field_basis.json','decision_wait.json'):
+        for name in ('escalations.json','field_basis.json','decision_wait.json','progress.json'):
             if (folder/name).exists():(folder/name).unlink()
         if fresh:
             for name in CALCULATIONS:

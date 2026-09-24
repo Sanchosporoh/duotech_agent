@@ -51,6 +51,11 @@ def set_clock(root,hour,mode):
     save(folder(root)/'clock.json',{'hour':hour,'mode':mode,'updated_at':datetime.now().isoformat(timespec='seconds')})
 
 
+def progress(root):
+    path=folder(root)/'progress.json'
+    return json.loads(path.read_text(encoding='utf-8')) if path.exists() else {}
+
+
 def reset_clock(root):
     path=folder(root)/'clock.json'
     if path.exists():path.unlink()

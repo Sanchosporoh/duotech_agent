@@ -44,10 +44,10 @@ def license_status(root):
             st.rerun()
 
 
-@st.fragment(run_every='10s')
+@st.fragment(run_every='3s')
 def agent_watch(root,seen):
-    # The agent runs in its own process; refresh the page when it has processed a new hour.
-    if cycle_service.clock(root).get('updated_at')!=seen:st.rerun()
+    # The agent runs in its own process; refresh the page after each of its steps.
+    if (cycle_service.clock(root).get('updated_at'),cycle_service.progress(root).get('updated_at'))!=seen:st.rerun()
 
 
 STAGE_LABELS={'pending':'Агент ещё не обработал текущие данные','needs_data':'Недостаточно данных для расчёта',
@@ -87,7 +87,8 @@ def render(root):
     with st.expander('Как сейчас работает система',expanded=False):
         st.write('Агент работает отдельным процессом (tools/run_agent.py) по расписанию: каждый такт — новый час измерений. Витрина только показывает записанное агентом и принимает решение инженера. Утверждение записывается в локальный реестр; эффект появляется со следующего часа с учётом фаз работ. Возврат с комментарием учитывается в следующем цикле агента.')
     agent=cycle_service.clock(root)
-    agent_watch(root,agent.get('updated_at'))
+    step=cycle_service.progress(root)
+    agent_watch(root,(agent.get('updated_at'),step.get('updated_at')))
     hour=agent.get('hour')
     a,b,c=st.columns([2,1,4])
     if a.button('Обработать следующий час сейчас',disabled=hour is not None and hour>=cycle_service.LAST_HOUR or agent.get('mode')=='wall'):
@@ -98,6 +99,8 @@ def render(root):
         c.write('Агент ещё не обработал ни одного часа.')
         return
     c.write(f"Час агента: {hour:02d}:00 · режим часов: {'реальное время' if agent.get('mode')=='wall' else 'ускоренная имитация'}")
+    if step and not step.get('done') and step.get('hour')==hour:
+        st.info('Агент работает: '+step['step'])
     license_status(root)
     if tool_gateway.backend()=='stub':
         st.warning('Режим заглушек: Codex, PROSPER и GAP не запускаются. Результаты проверяют цепочку и не являются расчётом.')

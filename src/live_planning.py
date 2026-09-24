@@ -56,7 +56,7 @@ def forecast_need(context):
                     f'накопленный недобор в диапазоне {deficit_low:.2f}…{deficit:.2f} т, для потребности взята худшая граница'))}
 
 
-def prepare(root,context,key,answer,checks,model_state=None,reuse=None):
+def prepare(root,context,key,answer,checks,model_state=None,reuse=None,progress=None):
     """reuse: measure sets (and for level 'none' the network result) of the last full calculation."""
     need=forecast_need(context)
     if not need['ready']: return {'stage':'needs_data','need':need,'reason':need['reason']}
@@ -87,6 +87,7 @@ def prepare(root,context,key,answer,checks,model_state=None,reuse=None):
     if model_state is not None and not model_state['ready']:
         return {'stage':model_state['stage'] if model_state.get('stage') in ('waiting_license','waiting_petex') else 'awaiting_model_state','need':need,'reason':model_state['reason']}
     def finish(plan):
+        if progress:progress(plan)
         plan=calculate(root,context,key,plan,eligible)
         usable=eligible
         mandatory=violators(plan,eligible,limits)

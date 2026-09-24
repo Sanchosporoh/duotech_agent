@@ -64,6 +64,11 @@ def _record(tool,started,ok,**extra):
         _tick['calls'].append(dict(tool=tool,seconds=round(time.monotonic()-started,3),ok=ok,**extra))
 
 
+def _stub_delay():
+    # Optional pause for stub demos: makes each step visible on the dashboard.
+    time.sleep(float(os.environ.get('AGENT_STUB_DELAY','0') or 0))
+
+
 def backend():
     name=os.environ.get('AGENT_TOOL_BACKEND','petex')
     if name not in BACKENDS:raise ValueError(f'Неизвестный режим инструментов: {name}')
@@ -89,6 +94,7 @@ def ask_codex(root,prompt,schema,cwd):
     try:
         if backend()=='stub':
             from src import tool_stubs
+            _stub_delay()
             answer=tool_stubs.codex(prompt,schema)
         else:
             from src.codex_cli import ask_codex as real
@@ -106,6 +112,7 @@ def run_worker(root,script,request,output):
     started=time.monotonic()
     if backend()=='stub':
         from src import tool_stubs
+        _stub_delay()
         try:tool_stubs.worker(script,Path(request),Path(output))
         except Exception:
             _record(script,started,False);raise
