@@ -18,19 +18,25 @@ def load(root):
     return json.loads(path.read_text(encoding='utf-8')) if path.exists() else {'items':[]}
 
 
-def raise_item(root,subject,reason,run_id,hour,now=None):
-    """Add an open item unless the same subject and reason are already waiting."""
+def raise_item(root,subject,reason,run_id,hour,now=None,kind='agent'):
+    """Add an open item unless the same subject and reason are already waiting.
+
+    kind='agent' — the agent could not finish (owner: modelling engineer);
+    kind='decision' — a ready proposal waits for the engineer's decision too long (owner: field technologist).
+    """
     data=load(root)
     for item in data['items']:
         if item['status']=='open' and item['subject']==subject and item['reason']==reason:
             return item
     policy=json.loads((root/'config'/'escalation.json').read_text(encoding='utf-8'))
     now=now or datetime.now()
-    item={'id':uuid.uuid4().hex[:8],'status':'open','subject':subject,'reason':reason,'run_id':run_id,'hour':hour,
+    prefix='decision_' if kind=='decision' else ''
+    owner,hours=policy[prefix+'owner_role'],policy[prefix+'response_hours']
+    backup,extra=policy[prefix+'backup_role'],policy[prefix+'backup_response_hours']
+    item={'id':uuid.uuid4().hex[:8],'status':'open','kind':kind,'subject':subject,'reason':reason,'run_id':run_id,'hour':hour,
           'created_at':now.isoformat(timespec='seconds'),
-          'owner_role':policy['owner_role'],'deadline':(now+timedelta(hours=policy['response_hours'])).isoformat(timespec='minutes'),
-          'backup_role':policy['backup_role'],
-          'backup_deadline':(now+timedelta(hours=policy['response_hours']+policy['backup_response_hours'])).isoformat(timespec='minutes')}
+          'owner_role':owner,'deadline':(now+timedelta(hours=hours)).isoformat(timespec='minutes'),
+          'backup_role':backup,'backup_deadline':(now+timedelta(hours=hours+extra)).isoformat(timespec='minutes')}
     data['items'].append(item)
     save(_path(root),data)
     return item

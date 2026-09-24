@@ -6,6 +6,7 @@ Examples (project venv):
   python tools/run_agent.py --loop --interval 10 --stop-at 6   demo: stop after 06:00 to show the decision
   python tools/run_agent.py --loop --clock wall --interval 300   real time: current hour every 5 min
   python tools/run_agent.py --root <copy> --backend stub --loop   whole chain without licenses
+  python tools/run_agent.py --reset [--fresh]              new day; --fresh also recalculates everything live
 
 Windows Task Scheduler can call "--once" (simulated) or "--once --clock wall" on a schedule.
 """
@@ -28,7 +29,8 @@ def main():
     mode=parser.add_mutually_exclusive_group(required=True)
     mode.add_argument('--once',action='store_true',help='один такт')
     mode.add_argument('--loop',action='store_true',help='такты с паузой --interval')
-    mode.add_argument('--reset',action='store_true',help='начать сутки заново (часы агента на 00:00 при следующем такте)')
+    mode.add_argument('--reset',action='store_true',help='начать сутки заново: решения, эскалации и часы агента в архив')
+    parser.add_argument('--fresh',action='store_true',help='вместе с --reset: убрать и сохранённые расчёты, чтобы Codex, PROSPER и GAP посчитали заново')
     parser.add_argument('--interval',type=float,default=60.,help='пауза между тактами, с')
     parser.add_argument('--stop-at',type=int,help='остановиться после обработки этого часа (демонстрация)')
     args=parser.parse_args()
@@ -36,7 +38,9 @@ def main():
     from src import cycle_service
     root=args.root.resolve()
     if args.reset:
-        cycle_service.reset_clock(root);print('Часы агента сброшены');return
+        from src.reset_decisions import reset
+        archive=reset(root,fresh=args.fresh)
+        print('Сутки начнутся с 00:00. Архив:',archive,'· сохранённые расчёты',('убраны — будет живой расчёт' if args.fresh else 'сохранены — быстрый повтор'));return
     while True:
         result=cycle_service.tick(root,args.clock)
         print(json.dumps({k:result.get(k) for k in ('hour','status','incidents','errors','duration_seconds')},ensure_ascii=False),flush=True)

@@ -50,6 +50,13 @@ def agent_watch(root,seen):
     if cycle_service.clock(root).get('updated_at')!=seen:st.rerun()
 
 
+STAGE_LABELS={'pending':'Агент ещё не обработал текущие данные','needs_data':'Недостаточно данных для расчёта',
+    'waiting_license':'Ожидание лицензии OpenServer','waiting_petex':'PetEx занят другим расчётом — повтор в следующем такте',
+    'running':'Расчёт выполняется','needs_attention':'Работа остановлена — причина указана ниже',
+    'awaiting_human_decision':'Предложение готово, требуется решение инженера','awaiting_model_state':'Недостаточно данных для расчёта сети',
+    'conditional_network_calculated':'Сеть рассчитана, допустимого варианта нет','approved_for_execution':'Решение утверждено'}
+
+
 def check_table(rows):
     frame=pd.DataFrame(rows)
     if 'Инструмент' in frame:
@@ -117,40 +124,48 @@ def render(root):
         st.dataframe(incidents.rename(columns={'incident_id':'Инцидент','opened_hour':'Час обнаружения','signal':'Что обнаружено','observed_loss_tpd':'Недобор темпа, т/сут','status':'Статус'}),hide_index=True)
         if not incidents.empty:
             execution_states=autonomous_cycle.read_states(root,separator,telemetry,hour,incidents)
-            selected=st.selectbox('Инцидент',incidents.incident_id.tolist())
+            names=incidents.incident_id.tolist()
+            # Open the incident that still needs attention; closed ones stay one click away.
+            waiting=[i for i,n in enumerate(names) if execution_states.get(n,{}).get('stage') not in ('approved_for_execution','closed_rejected')]
+            selected=st.selectbox('Инцидент',names,index=waiting[0] if waiting else len(names)-1)
             execution_state=execution_states[selected]
             recommendation=execution_state.get('recommendation',{})
-            for assumption in execution_state.get('model_state',{}).get('assumptions',[]):st.caption(assumption)
-            if recommendation.get('ready'):
-                st.markdown('#### Рекомендация')
-                best=recommendation['selected']
-                st.write(best['title'])
-                st.write(f"Ожидаемый остаточный недобор: {best['expected_deficit_t']:.2f} т. Полное закрытие недобора не является условием выдачи предложения.")
-                st.caption(recommendation['basis'])
-                st.dataframe(pd.DataFrame([{'Вариант':c['title'],'Остаточный недобор, т':c['expected_deficit_t'],'Баланс, т':c['expected_balance_t']} for c in recommendation['candidates']]),hide_index=True)
-                for limitation in recommendation['limitations']+best['unresolved']:st.caption(limitation)
+            plan=execution_state.get('plan',{})
+            path=folder/'lifecycle.json'
+            life=incident_lifecycle.ensure_incident(path,selected,'Причина определяется по измерениям')
+            version=life['versions'][-1]
+            row=incidents[incidents.incident_id==selected].iloc[0]
+            incident_context={'incident_id':selected,'opened_hour':int(row.opened_hour),'observed_loss_tpd':float(row.observed_loss_tpd)}
+            context,fingerprint=live_reasoning.snapshot(separator,telemetry,hour,incident_context,version.get('human_comment',''),version['version'],fingerprints(root))
+            st.caption('Состояние агента: '+STAGE_LABELS.get(execution_state.get('stage'),str(execution_state.get('stage'))))
+            recompute=execution_state.get('recompute')
+            if recompute:
+                label={'full':'полный (гипотезы, проверки, наборы, GAP)','network':'только сеть GAP по прежним наборам','none':'без расчётов: обновлены недобор и баланс'}[recompute['level']]
+                st.caption(f"Пересчёт в этом часу: {label}. Последний полный расчёт — {recompute['basis_hour']:02d}:00. "+'; '.join(recompute['reasons']))
             if execution_state.get('stage')=='approved_for_execution':
                 st.success('Решение утверждено. Эффекты выполняются по часам из локального реестра.')
             if execution_state.get('error') and execution_state.get('stage')!='waiting_license': st.error('Цикл остановлен: '+execution_state['error'])
-            recompute=execution_state.get('recompute')
-            if recompute:
-                label={'full':'полный (диагностика, наборы, GAP)','network':'только сеть GAP по прежним наборам','none':'без расчётов: обновлены недобор и баланс'}[recompute['level']]
-                st.caption(f"Пересчёт в этом часу: {label}. Последний полный расчёт — {recompute['basis_hour']:02d}:00. "+'; '.join(recompute['reasons']))
-            st.caption('Состояние агента: '+{'pending':'Агент ещё не обработал текущие данные','needs_data':'Недостаточно данных для расчёта','waiting_license':'Ожидание лицензии OpenServer','waiting_petex':'PetEx занят другим расчётом — повтор в следующем такте','running':'Расчёт выполняется','needs_attention':'Работа остановлена — причина указана ниже','awaiting_human_decision':'Предложение готово, требуется утверждение','awaiting_model_state':'Недостаточно данных для расчёта сети','conditional_network_calculated':'Сеть рассчитана, результаты предварительные','approved_for_execution':'Решение утверждено'}.get(execution_state.get('stage'),str(execution_state.get('stage'))))
-            if not recommendation.get('ready'):
-                st.warning('Решение пока не готово: '+execution_state.get('reason',execution_state.get('error',execution_state.get('plan',{}).get('reason',recommendation.get('reason','Нет завершённого допустимого расчёта')))))
-            st.markdown('#### Рассмотренные скважины — признаки и доступность данных')
-            st.caption('Потеря на сепараторе не определяет скважину. Ни одна скважина не исключается только из-за отсутствия изменений телеметрии.')
-            readable_table(live_monitor.screen_wells(telemetry,hour))
+            answer=execution_state.get('hypotheses')
+            st.markdown('#### 3. Гипотезы: что могло случиться')
+            if answer:
+                st.write(russian_text(answer.get('assessment','')))
+                readable_table([{'Гипотеза':item['title'],'Кандидаты':', '.join(item['candidate_wells']),
+                                 'Обоснование':item['engineering_rationale'],'Как проверить':item['verification'],
+                                 'Не хватает':'; '.join(item['missing_data'])} for item in answer['hypotheses']])
+                st.caption('Гипотезы предлагает LLM по наблюдениям и доверию к скважинам. Это версии, а не установленные причины.')
+            else:st.info('Гипотез для текущих данных ещё нет.')
+            st.markdown('#### 4. Проверка гипотез расчётом')
+            if execution_state.get('checks'):readable_table(check_table(execution_state['checks']))
             for fit in execution_state.get('adaptation',[]):
-                with st.expander('Варианты адаптации · '+fit['well_id'],expanded=True):
+                with st.expander('PROSPER · варианты модели '+fit['well_id'],expanded=False):
                     if 'candidates' in fit:
                         st.dataframe(pd.DataFrame(fit['candidates']),hide_index=True)
-                        st.caption(fit['interpretation'])
-                    else:st.warning(fit.get('reason','Адаптация выполняется'))
-            plan=execution_state.get('plan',{})
+                        st.caption(fit.get('interpretation',''))
+                    else:st.write(fit.get('reason','Адаптация выполняется'))
+            for assumption in execution_state.get('model_state',{}).get('assumptions',[]):st.caption('Состояние сети: '+assumption)
+            st.caption('PROSPER проверяет, какая модель скважины согласуется с замером давления; физическую причину он не доказывает.')
             if plan:
-                st.markdown('#### Предварительная потребность и наборы для расчёта ИМА')
+                st.markdown('#### 5. Сколько нужно компенсировать')
                 need=plan.get('need',{})
                 if need.get('ready'):
                     st.write(f"К возможному началу эффекта в {need['effect_start_hour']:02d}:00 ожидается недобор {need['net_deficit_t']:.2f} т; на компенсацию остаётся {need['remaining_hours']} ч; требуется +{need['required_extra_oil_tpd']:.2f} т/сут.")
@@ -163,67 +178,46 @@ def render(root):
                     st.caption(need['assumption'])
                 else: st.warning(need.get('reason','Недостаточно данных'))
                 if 'proposal' in plan:
+                    st.markdown('#### 6. Наборы мероприятий — сценарии для GAP')
                     st.write(russian_text(plan['proposal']['assessment']))
-                    proposal_rows=[{'Набор':a['title'],'Почему выбран':a['rationale'],'Скважины':a['selected_wells'],
-                                    'Что ещё проверить':a['unresolved_constraints'],
-                                    'Сумма потенциалов реестра, т/сут':a.get('register_potential_sum_tpd')} for a in plan['proposal']['alternatives']]
-                    readable_table(proposal_rows)
-                    st.caption('Суммы потенциала и стоимости взяты из реестра. Это не рассчитанный эффект, не точные режимы и не разрешение на исполнение.')
-                st.info(plan.get('reason','Необходимо уточнить данные'))
-                if plan.get('network_error'):st.error('GAP: '+plan['network_error'])
-                for item in plan.get('mandatory_wells',[]):
-                    st.info(item['well_id']+': '+item['reason']+' — скважина добавлена в каждый набор с регулированием в обе стороны.')
-                wash=plan.get('restoration_forecast')
-                if wash:
-                    with st.expander('Прогноз промывки насоса',expanded=True):
-                        if wash['ready']:
-                            st.dataframe(pd.DataFrame(wash['timeline']),hide_index=True)
-                            st.write('Ожидаемый баланс к концу суток, т:',wash['expected_horizon_balance_t'])
-                            st.caption(wash['assumption'])
-                        else:st.warning(wash['reason'])
-                        for unresolved in wash.get('unresolved',[]):st.caption(unresolved)
-                capacity=plan.get('capacity_check',{})
-                if capacity.get('network_error'):st.warning('Проверка всех возможностей: '+capacity['network_error'])
-                for item in capacity.get('network',{}).get('alternatives',[]):
-                    st.write('Проверка всех доступных регулирований: прирост',item.get('gain_oil_tpd'),'т/сут; ограничения соблюдены:',item.get('constraints_met'),'условная цель достигнута:',item.get('conditional_target_met'))
-                if 'network' in plan:
-                    readable_table([{'Набор':r['title'],'Прирост модели, т/сут':r.get('gain_oil_tpd'),'Невязка нефти, т/сут':r.get('model_measurement_residual_tpd'),'Невязка воды, м³/сут':r.get('model_measurement_water_residual_m3d'),'Условный баланс к 24:00, т':r.get('conditional_horizon_balance_t'),'Вода соблюдена':r.get('water_limit_met'),'Pзаб соблюдено':r.get('fbhp_limit_met'),'Статус':r['interpretation']} for r in plan['network']['alternatives']])
-                    for alternative in plan['network']['alternatives']:
-                        with st.expander('Контроли GAP · '+alternative['title']):
-                            st.dataframe(pd.DataFrame(alternative['configured_controls']),hide_index=True)
-            st.markdown('#### Версии по явным изменениям телеметрии — не подтверждённые причины')
-            checks=live_monitor.hypotheses(telemetry,hour)
-            with st.expander('Подробные признаки телеметрии'):
-                readable_table(checks.rename(columns={'well_id':'Скважина','hypothesis':'Версия','pressure_delta_bar':'Изменение давления, бар','frequency_hz':'Частота, Гц','measurement_hour':'Час замера','status':'Вывод'}))
-            basic_answer={'hypotheses':[{'title':r.hypothesis,'candidate_wells':[] if r.well_id=='—' else [r.well_id],
-                                       'verification':'Собрать независимые измерения'} for _,r in checks.iterrows()]}
-            basic_context={'hour':hour,'telemetry':json.loads(telemetry[telemetry.hour<=hour].to_json(orient='records',date_format='iso'))}
-            with st.expander('Подробные базовые проверки сигналов и исходных характеристик',expanded=False):
-                readable_table(check_table(live_checks.execute(root,basic_context,basic_answer)))
-            st.caption('Номер инцидента не выбирает скважину, причину или готовый расчёт. Здесь показаны признаки текущего часа, не подтверждённые гипотезы.')
-            path=folder/'lifecycle.json'
-            life=incident_lifecycle.ensure_incident(path,selected,'Причина определяется по измерениям')
-            version=life['versions'][-1]
-            row=incidents[incidents.incident_id==selected].iloc[0]
-            incident_context={'incident_id':selected,'opened_hour':int(row.opened_hour),'observed_loss_tpd':float(row.observed_loss_tpd)}
-            context,fingerprint=live_reasoning.snapshot(separator,telemetry,hour,incident_context,version.get('human_comment',''),version['version'],fingerprints(root))
-            response_path=folder/'reasoning'/f'{fingerprint}.json'
-            if response_path.exists():
-                result=json.loads(response_path.read_text(encoding='utf-8'))
-                st.write(result['answer']['assessment'])
-                hypothesis_rows=[{'Гипотеза':item['title'],'Кандидаты':', '.join(item['candidate_wells']),
-                                  'Обоснование':item['engineering_rationale'],'Проверка':item['verification'],
-                                  'Не хватает':'; '.join(item['missing_data'])} for item in result['answer']['hypotheses']]
-                readable_table(hypothesis_rows)
-                st.caption('Ответ относится только к текущим данным, часу и версии комментария. При их изменении требуется новый анализ.')
-                st.markdown('#### Проверки гипотез — что сделали и что установили')
-                checks_result=live_checks.execute(root,context,result['answer'])
-                readable_table(check_table(checks_result))
-                st.caption('Это ограниченный набор проверок, а не исполнение любого текста Codex. Прежние кривые используются только для подключённых объектов и совместимых контролей. Условная оценка не подтверждает причину.')
-            else:
-                st.warning('Для текущего снимка данных актуального ответа Codex нет.')
-            if not recommendation.get('ready') and life['stage']!='approved_for_execution':
-                st.info('Утверждение недоступно: нет актуального допустимого предложения.')
+                    readable_table([{'Набор':a['title'],'Почему выбран':a['rationale'],'Скважины':a['selected_wells'],
+                                     'Что ещё проверить':a['unresolved_constraints'],
+                                     'Сумма потенциалов реестра, т/сут':a.get('register_potential_sum_tpd')} for a in plan['proposal']['alternatives']])
+                    for item in plan.get('mandatory_wells',[]):
+                        st.info(item['well_id']+': '+item['reason']+' — скважина добавлена в каждый набор с регулированием в обе стороны.')
+                    st.caption('Наборы выбирает LLM из реестра возможностей, в первую очередь скважины с высоким доверием. Потенциал реестра — не рассчитанный эффект.')
+                if 'network' in plan or plan.get('network_error'):
+                    st.markdown('#### 7. Расчёт GAP: точные режимы и ограничения')
+                    if plan.get('network_error'):st.error('GAP: '+plan['network_error'])
+                    if 'network' in plan:
+                        readable_table([{'Набор':r['title'],'Прирост модели, т/сут':r.get('gain_oil_tpd'),'Условный баланс к 24:00, т':r.get('conditional_horizon_balance_t'),'Вода соблюдена':r.get('water_limit_met'),'Pзаб соблюдено':r.get('fbhp_limit_met'),'Мин. Pзаб, бар':r.get('minimum_fbhp_bar'),'Невязка нефти, т/сут':r.get('model_measurement_residual_tpd'),'Статус':r['interpretation']} for r in plan['network']['alternatives']])
+                        for alternative in plan['network']['alternatives']:
+                            with st.expander('Контроли GAP · '+alternative['title']):
+                                st.dataframe(pd.DataFrame(alternative['configured_controls']),hide_index=True)
+                    capacity=plan.get('capacity_check',{})
+                    if capacity.get('network_error'):st.warning('Запасной расчёт всей регулирующей способности: '+capacity['network_error'])
+                    for item in capacity.get('network',{}).get('alternatives',[]):
+                        st.write(f"Запасной расчёт всей регулирующей способности: прирост {item.get('gain_oil_tpd',0):.2f} т/сут; ограничения соблюдены: {'да' if item.get('constraints_met') else 'нет'}.")
+                    wash=plan.get('restoration_forecast')
+                    if wash:
+                        with st.expander('Сценарий промывки насоса по фазам',expanded=False):
+                            if wash['ready']:
+                                st.dataframe(pd.DataFrame(wash['timeline']),hide_index=True)
+                                st.write('Ожидаемый баланс к концу суток, т:',wash['expected_horizon_balance_t'])
+                                st.caption(wash['assumption'])
+                            else:st.warning(wash['reason'])
+                            for unresolved in wash.get('unresolved',[]):st.caption(unresolved)
+            st.markdown('#### 8. Рекомендация')
+            if recommendation.get('ready'):
+                best=recommendation['selected']
+                st.write('**'+best['title']+'**')
+                st.write(f"Ожидаемый остаточный недобор к концу суток: {best['expected_deficit_t']:.2f} т. Если полностью закрыть недобор нельзя, показан лучший допустимый вариант.")
+                st.dataframe(pd.DataFrame([{'Вариант':c['title'],'Остаточный недобор, т':c['expected_deficit_t'],'Баланс, т':c['expected_balance_t']} for c in recommendation['candidates']]),hide_index=True)
+                st.caption(recommendation['basis'])
+                for limitation in recommendation['limitations']+best['unresolved']:st.caption(limitation)
+            elif life['stage']!='approved_for_execution':
+                st.warning('Решение пока не готово: '+execution_state.get('reason',execution_state.get('error',plan.get('reason',recommendation.get('reason','Нет завершённого допустимого расчёта')))))
+            st.markdown('#### 9. Решение инженера')
             covered=execution_state.get('field_plan',{}).get('incidents') or [selected]
             if len(covered)>1:
                 st.info('План компенсации общий для инцидентов '+', '.join(covered)+': недобор сепаратора один на месторождение. Решение применяется ко всем этим инцидентам.')

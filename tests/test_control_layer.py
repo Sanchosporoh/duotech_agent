@@ -63,7 +63,7 @@ class LimitTests(unittest.TestCase):
             run=cycle_service.tick(root)  # 15:00, second incident opens
             self.assertEqual(run['status'],'too_many_incidents')
             self.assertEqual(run['tools']['llm_calls'],0)
-            self.assertEqual([i['subject'] for i in escalation.open_items(root)],['Цикл агента'])
+            self.assertEqual([i['subject'] for i in escalation.open_items(root) if i['kind']=='agent'],['Цикл агента'])
 
 
 class EscalationQueueTests(unittest.TestCase):
@@ -93,3 +93,16 @@ class EscalationQueueTests(unittest.TestCase):
 
 if __name__=='__main__':
     unittest.main()
+
+
+class DecisionWaitTests(unittest.TestCase):
+    def test_unanswered_proposal_is_escalated_to_the_field_technologist(self):
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory, patch.dict(os.environ,{'AGENT_TOOL_BACKEND':'stub'}):
+            root=make_project(directory)
+            run_until(root,9)   # ready at 06:00, nobody decides; 09:00 is 3 h
+            self.assertEqual(escalation.open_items(root),[])
+            cycle_service.tick(root)   # 10:00 — 4 h without a decision
+            items=escalation.open_items(root)
+            self.assertEqual([(i['subject'],i['kind'],i['owner_role']) for i in items],[(FIRST,'decision','ведущий технолог по добыче')])
+            cycle_service.tick(root)   # the same wait is not duplicated
+            self.assertEqual(len(escalation.open_items(root)),1)

@@ -6,6 +6,16 @@ from pathlib import Path
 import pandas as pd
 
 
+def well_deltas(before,after):
+    """Oil change of each well between two GAP states, t/d: the known effect of a plan per well."""
+    reference={w['well_id']:float(w['oil_sm3d'] or 0) for w in before.get('wells',[])}
+    result={}
+    for well in after.get('wells',[]):
+        change=(float(well['oil_sm3d'] or 0)-reference.get(well['well_id'],0.))*.908
+        if abs(change)>1e-6:result[well['well_id']]=round(change,4)
+    return result
+
+
 def select(context,plan):
     if not plan.get('need',{}).get('ready'):return {'ready':False,'reason':'Нет суточного баланса'}
     last=pd.DataFrame(context['separator']).sort_values('hour').iloc[-1]
@@ -27,7 +37,7 @@ def select(context,plan):
             add(title,[{'name':'Новые режимы','hours':remaining,
                 'oil_tpd':float(last.separator_oil_tpd)+delta,'oil_delta_tpd':delta,
                 'water_delta_m3d':float(optimum['water_m3d'])-float(current['water_m3d']),
-                'wells':optimum['wells']}])
+                'wells':optimum['wells'],'well_deltas':well_deltas(current,optimum)}])
     wash=plan.get('restoration_forecast',{})
     if wash.get('ready'):
         network=json.loads(Path(wash['network_result']).read_text(encoding='utf-8'))
@@ -42,7 +52,8 @@ def select(context,plan):
             delta=(float(state['oil_sm3d'])-float(reference['oil_sm3d']))*.908
             phases.append({'name':phase['name'],'hours':hours,'oil_tpd':float(last.separator_oil_tpd)+delta,
                 'oil_delta_tpd':delta,'water_delta_m3d':float(state['water_m3d'])-float(reference['water_m3d']),
-                'wells':state['wells'],'well_state':phase['well_state'],'repair_well_id':wash['well_id']})
+                'wells':state['wells'],'well_state':phase['well_state'],'repair_well_id':wash['well_id'],
+                'well_deltas':well_deltas(reference,state)})
             left-=hours
         add(wash['measure']['title']+' + компенсационные режимы',phases,unresolved=wash.get('unresolved'))
     if not candidates:return {'ready':False,'reason':'Нет рассчитанного варианта, прошедшего ограничения'}

@@ -3,7 +3,7 @@ import pandas as pd
 import streamlit as st
 import altair as alt
 import math
-from src import live_monitor
+from src import live_monitor, live_execution
 
 
 def well_statuses(telemetry, hour):
@@ -75,6 +75,33 @@ def balance_history(allocation, separator, hour):
     return parts,visible,factor
 
 
+def known_changes(root,telemetry,hour,parts):
+    """Apply what is known per well: measured stops and approved plan regimes at this hour."""
+    parts=parts.copy()
+    parts['Известное изменение, т/сут']=0.
+    parts['Почему']=''
+    deltas={}
+    for action in sorted(live_execution.load(root)['actions'],key=lambda a:a['approved_at']):
+        start=action['approved_hour']+1
+        for phase in action['proposal']['phases']:
+            end=start+phase['hours']
+            if start<=hour<end and 'well_deltas' in phase:
+                deltas=phase['well_deltas']  # a newer approved plan replaces earlier regimes
+            start=end
+    for index,row in parts.iterrows():
+        well=row['Скважина']
+        history=telemetry[(telemetry.well_id==well)&(telemetry.hour<=hour)].sort_values('hour')
+        stopped=not history.empty and 'frequency_hz' in history and history.iloc[-1].get('frequency_hz')==0
+        if stopped:
+            parts.loc[index,'Известное изменение, т/сут']=-row['Оценочный вклад, т/сут']
+            parts.loc[index,'Почему']='остановлена по замеру'
+        elif well in deltas:
+            parts.loc[index,'Известное изменение, т/сут']=deltas[well]
+            parts.loc[index,'Почему']='режим утверждённого плана'
+    parts['Оценочный вклад, т/сут']=(parts['Оценочный вклад, т/сут']+parts['Известное изменение, т/сут']).clip(lower=0)
+    return parts
+
+
 def render(root, separator, telemetry, hour):
     st.markdown('#### 1. Что изменилось в телеметрии')
     statuses=well_statuses(telemetry,hour)
@@ -109,6 +136,7 @@ def render(root, separator, telemetry, hour):
         if visible.empty:
             st.info('Нет доступного замера сепаратора для сравнения.')
             return
+        allocation=known_changes(root,telemetry,hour,allocation)
         latest=visible.iloc[-1]
         measured=latest.separator_oil_tpd if int(latest.hour)==hour and pd.notna(latest.separator_oil_tpd) else None
         tiles=allocation_tiles(allocation,measured)
@@ -132,7 +160,7 @@ def render(root, separator, telemetry, hour):
         a.metric('Сумма оценок скважин, т/сут',f'{total:.2f}')
         b.metric(f'Сепаратор · {hour:02d}:00, т/сут','Нет замера' if measured is None else f'{measured:.2f}')
         c.metric('Невязка, т/сут','Не определена' if measured is None else f'{measured-total:+.2f}')
-        st.caption('Площадь цветной плитки пропорциональна исходной оценке скважины. Чёрная плитка — модуль разницы «сепаратор − сумма оценок» со знаком в подписи, а не дополнительная скважина. Потеря не приписывается конкретному объекту без диагностики.')
+        st.caption('Площадь цветной плитки — исходная оценка скважины с учётом известного: остановка по замеру и режимы утверждённого плана (изменение по расчёту GAP). Чёрная плитка — необъяснённая часть «сепаратор − сумма оценок» со знаком в подписи, а не дополнительная скважина. Потеря не приписывается конкретному объекту без диагностики.')
         if measured is None:st.warning('Нет текущего замера сепаратора: чёрная плитка не строится.')
         elif abs(measured-total)<1e-6:st.caption('Баланс совпадает: чёрной плитки нет.')
         st.caption(f'Исходные вклады согласованы с первым доступным замером, коэффициент {factor:.4f}. Это опорные оценки, не текущие индивидуальные замеры.')
@@ -143,4 +171,4 @@ def render(root, separator, telemetry, hour):
                 y=alt.Y('Нефть, т/сут:Q',scale=alt.Scale(zero=False)),
                 color='Показатель:N',
                 tooltip=[alt.Tooltip('timestamp:T',format='%H:%M'),'Показатель:N',alt.Tooltip('Нефть, т/сут:Q',format='.2f')]).properties(height=200),use_container_width=True)
-            st.dataframe(allocation[['Скважина','Оценочный вклад, т/сут']],hide_index=True)
+            st.dataframe(allocation[['Скважина','Оценочный вклад, т/сут','Известное изменение, т/сут','Почему']],hide_index=True)

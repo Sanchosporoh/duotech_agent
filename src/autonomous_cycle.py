@@ -139,6 +139,7 @@ def _run(root, separator, telemetry, hour, incidents):
                     live_reasoning.save(response,result)
                 state.update(checks=live_checks.execute(root,context,result['answer']),
                              adaptation=live_adaptation.run(root,context,key,result['answer']))
+            state['hypotheses']=result['answer']
             active.append((identity,life,context,key,execution,state,result['answer']))
         except Exception as exc:
             state.update(stage='needs_attention',error=str(exc))
