@@ -44,7 +44,7 @@ def run(root,context,key,answer):
         if len(history)>1 and unchanged and not conditions_changed:
             results.append({'well_id':well,'stage':'screened','reason':'Давление не изменилось; '+('текущий контроль отсутствует — используем модельный как допущение' if pd.isna(current.get('frequency_hz')) else 'доступная частота не изменилась')+'. Исходное состояние модели — допущение, скважина не исключена из гипотез'});continue
         if well not in sensors:
-            results.append({'well_id':well,'stage':'needs_data','reason':'Файл модели найден, но положение датчика и допуск давления не подтверждены'});continue
+            results.append({'well_id':well,'stage':'needs_data','reason':'Модель есть, но для скважины не заданы положение датчика давления и допустимая погрешность давления (config/diagnostic_sensors.json): сравнить замер с расчётом нельзя'});continue
         fields=['frequency_hz','sensor_pressure_bar','whp_bara','water_cut_pct','gor_m3m3']
         if current.hour!=context['hour'] or any(pd.isna(current.get(f)) for f in fields) or current.frequency_hz<=0:
             results.append({'well_id':well,'stage':'needs_data','reason':'Нет полного текущего набора условий работающего насоса'});continue
@@ -69,23 +69,37 @@ def run(root,context,key,answer):
 
 
 def prepare_lifts(root,context,adaptation):
-    """Prepare provisional lift tables; do not resolve ambiguous diagnoses by fiat."""
+    """Prepare provisional lift tables; do not resolve ambiguous diagnoses by fiat.
+
+    A well whose state cannot be calculated reliably is not regulated by the plan;
+    the other wells still are (engineer's rule, 24.09). Only an unavailable tool
+    (license, running calculation) stops the whole plan.
+    """
     models=available_models(root)
     telemetry=pd.DataFrame(context['telemetry'])
     tables=[]
     assumptions=[]
+    excluded=[]
+    def exclude(fit,reason):
+        excluded.append({'well_id':fit['well_id'],'reason':reason})
+        assumptions.append(fit['well_id']+': не регулируется планом — '+reason+'. В сети остаётся исходная модель скважины (допущение)')
     for fit in adaptation:
+        if fit.get('stage') in ('waiting_license','running'):
+            return {'ready':False,'stage':fit['stage'],'reason':fit['well_id']+': '+fit.get('reason','Расчёт ещё не завершён'),'well_id':fit['well_id']}
         if fit.get('stage')=='screened':
             assumptions.append(fit['well_id']+': '+fit['reason'])
             continue
         compatible=[c for c in fit.get('candidates',[]) if c.get('pressure_compatible')]
         if not compatible:
-            return {'ready':False,'stage':fit.get('stage','needs_data'),'reason':fit['well_id']+': '+fit.get('reason','Нет согласованного с давлением варианта модели'),'well_id':fit['well_id']}
+            exclude(fit,fit.get('reason','нет согласованного с давлением варианта модели'))
+            continue
         if len(compatible)!=1:
-            return {'ready':False,'reason':'Несколько вариантов согласованы с давлением; единственная характеристика сети не определена','well_id':fit['well_id']}
+            exclude(fit,'несколько вариантов модели согласованы с давлением, состояние скважины однозначно не определено')
+            continue
         candidate=compatible[0]
         if candidate['kind'] not in ['pump','unchanged']:
-            return {'ready':False,'reason':'Для изменения притока требуется передача IPR, а не только VLP','well_id':fit['well_id']}
+            exclude(fit,'изменение притока требует передачи IPR в сеть, это пока не поддерживается')
+            continue
         well=fit['well_id']
         signal=telemetry[telemetry.well_id==well].sort_values('hour').iloc[-1]
         request={f:float(signal[f]) for f in ['frequency_hz','sensor_pressure_bar','whp_bara','water_cut_pct','gor_m3m3']}
@@ -107,4 +121,7 @@ def prepare_lifts(root,context,adaptation):
             license_retry.success(root)
             save(attempt,{'stage':'completed'})
         tables.append({'well_id':well,'path':str(output.resolve()),'sha256':hashlib.sha256(output.read_bytes()).hexdigest(),'candidate':candidate})
-    return {'ready':bool(tables) or bool(assumptions),'lift_tables':tables,'assumptions':assumptions,'reason':'Предварительное состояние сети; допущения по непроверенным объектам перечислены отдельно'}
+    if not adaptation:
+        assumptions.append('Нет скважин-кандидатов для адаптации: сеть в исходном состоянии модели (допущение)')
+    return {'ready':True,'lift_tables':tables,'assumptions':assumptions,'excluded_wells':excluded,
+            'reason':'Предварительное состояние сети; допущения и скважины, которые план не трогает, перечислены отдельно'}

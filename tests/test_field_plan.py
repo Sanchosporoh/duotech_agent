@@ -34,6 +34,15 @@ class FieldDayTests(unittest.TestCase):
             # The approved regimes of the first plan are not treated as new events.
             self.assertEqual(second['field_plan']['incidents'],[SECOND])
             self.assertFalse(any(fit.get('stage')=='needs_data' for fit in second['adaptation']))
+            # 18:00: W50 pressure falls after the W22 stop, but its state cannot be fitted
+            # (no sensor position/tolerance). W50 is left untouched; the network is still calculated.
+            for _ in range(3):cycle_service.tick(root)
+            evening=states(root,18)[SECOND]
+            self.assertNotEqual(evening['stage'],'awaiting_model_state',evening.get('reason'))
+            self.assertIn('network',evening['plan'])
+            self.assertIn('W_BEL_50_TLBB',[w['well_id'] for w in evening['model_state']['excluded_wells']])
+            for alternative in evening['plan']['proposal']['alternatives']:
+                self.assertNotIn('W_BEL_50_TLBB',alternative['selected_wells'])
 
 
 class IdentityTests(unittest.TestCase):

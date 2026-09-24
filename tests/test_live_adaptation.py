@@ -20,7 +20,11 @@ class AdaptationTests(unittest.TestCase):
                     context={'hour':6,'telemetry':history}
                     result=run(root,context,'stale',{'hypotheses':[{'candidate_wells':['A']}]})
                     self.assertEqual(result[0]['stage'],'needs_data')
-                    self.assertFalse(prepare_lifts(root,context,result)['ready'])
+                    state=prepare_lifts(root,context,result)
+                    # Unreliable well is left untouched; the plan for other wells is not blocked.
+                    self.assertTrue(state['ready'])
+                    self.assertEqual(state['lift_tables'],[])
+                    self.assertEqual([w['well_id'] for w in state['excluded_wells']],[result[0]['well_id']])
                 worker.assert_not_called()
 
     def test_partial_diagnostic_result_does_not_override_failed_attempt(self):
@@ -65,22 +69,26 @@ class AdaptationTests(unittest.TestCase):
             result=run(root,{'hour':6,'telemetry':telemetry},'test',{'hypotheses':[{'candidate_wells':['A']}]})
             self.assertEqual(result[0]['stage'],'screened')
             self.assertFalse((root/'data').exists())
-    def test_ambiguous_pressure_fit_blocks_single_network_characteristic(self):
+    def test_ambiguous_pressure_fit_leaves_well_untouched(self):
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             root=Path(directory)
             (root/'config').mkdir()
             (root/'config'/'diagnostic_models.json').write_text('{}',encoding='utf-8')
             result=prepare_lifts(root,{'telemetry':[]},[{'well_id':'A','candidates':[{'pressure_compatible':True},{'pressure_compatible':True}]}])
-            self.assertFalse(result['ready'])
+            self.assertTrue(result['ready'])
+            self.assertEqual(result['lift_tables'],[])
+            self.assertEqual([w['well_id'] for w in result['excluded_wells']],['A'])
             self.assertFalse((root/'data').exists())
 
-    def test_inflow_change_cannot_be_transferred_as_lift_only(self):
+    def test_inflow_change_is_not_transferred_as_lift_only(self):
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             root=Path(directory)
             (root/'config').mkdir()
             (root/'config'/'diagnostic_models.json').write_text('{}',encoding='utf-8')
             result=prepare_lifts(root,{'telemetry':[]},[{'well_id':'A','candidates':[{'pressure_compatible':True,'kind':'inflow'}]}])
-            self.assertFalse(result['ready'])
+            self.assertTrue(result['ready'])
+            self.assertEqual(result['lift_tables'],[])
+            self.assertEqual([w['well_id'] for w in result['excluded_wells']],['A'])
             self.assertFalse((root/'data').exists())
     def test_missing_telemetry_does_not_launch_model(self):
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:

@@ -63,9 +63,12 @@ def prepare(root,context,key,answer,checks,model_state=None):
     telemetry=pd.DataFrame(context['telemetry'])
     eligible=[]
     excluded=[]
+    unreliable={w['well_id']:w['reason'] for w in (model_state or {}).get('excluded_wells',[])}
     for item in register['opportunities']:
         history=telemetry[telemetry.well_id==item['well_id']].sort_values('hour')
-        if item['direction']=='increase_after_restore':
+        if item['well_id'] in unreliable:
+            excluded.append({'well_id':item['well_id'],'reason':'Расчёт состояния скважины невозможен или недостоверен: '+unreliable[item['well_id']]})
+        elif item['direction']=='increase_after_restore':
             excluded.append({'well_id':item['well_id'],'reason':'Нет подтверждения успешного ремонта/перезапуска'})
         elif not history.empty and history.iloc[-1].get('frequency_hz')==0:
             excluded.append({'well_id':item['well_id'],'reason':'Последний сигнал указывает на остановку'})
