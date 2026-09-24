@@ -8,7 +8,7 @@ import json
 import time
 import uuid
 import pandas as pd
-from src import autonomous_cycle, incident_view, live_execution, live_monitor, tool_gateway
+from src import autonomous_cycle, escalation, incident_lifecycle, incident_view, live_execution, live_monitor, tool_gateway
 from src.live_reasoning import save
 
 CONDITION_COLUMNS=['whp_bara','water_cut_pct','gor_m3m3']
@@ -62,25 +62,57 @@ def process_hour(root,hour):
     started=time.monotonic()
     run={'run_id':datetime.now().strftime('%Y%m%d-%H%M%S')+'-'+uuid.uuid4().hex[:6],'hour':hour,
          'started_at':datetime.now().isoformat(timespec='seconds'),'tool_backend':tool_gateway.backend(),'incidents':{}}
-    separator,telemetry,errors=load_measurements(root)
-    if errors:
-        run.update(status='invalid_input',errors=errors)
-    else:
-        incidents=incident_view.opened_incidents(separator,hour)
-        if incidents.empty:
-            run.update(status='no_incidents')
+    limits=_limits(root)
+    tool_gateway.start_tick(root)
+    try:
+        separator,telemetry,errors=load_measurements(root)
+        if errors:
+            run.update(status='invalid_input',errors=errors)
         else:
-            try:
-                states=autonomous_cycle.run(root,separator,telemetry,hour,incidents)
-                run['incidents']={name:{'stage':s.get('stage'),'reason':s.get('reason') or s.get('error') or s.get('plan',{}).get('reason')}
-                                  for name,s in states.items()}
-                run['status']='processed'
-            except Exception as exc:  # the journal must record any crash of the cycle
-                run.update(status='failed',errors=[str(exc)])
+            incidents=incident_view.opened_incidents(separator,hour)
+            active=_active(root,incidents)
+            if incidents.empty:
+                run.update(status='no_incidents')
+            elif limits.get('max_open_incidents') is not None and len(active)>limits['max_open_incidents']:
+                run.update(status='too_many_incidents',errors=[f"Одновременно открыто {len(active)} инцидентов при лимите {limits['max_open_incidents']}: автоматический разбор остановлен, нужен инженер."])
+            else:
+                try:
+                    states=autonomous_cycle.run(root,separator,telemetry,hour,incidents)
+                    run['incidents']={name:{'stage':s.get('stage'),'reason':s.get('reason') or s.get('error') or s.get('plan',{}).get('reason')}
+                                      for name,s in states.items()}
+                    run['status']='processed'
+                except Exception as exc:  # the journal must record any crash of the cycle
+                    run.update(status='failed',errors=[str(exc)])
+    finally:
+        run['tools']=tool_gateway.finish_tick()
     run['duration_seconds']=round(time.monotonic()-started,3)
+    run['slow']=limits.get('slow_tick_seconds') is not None and run['duration_seconds']>limits['slow_tick_seconds']
     run['finished_at']=datetime.now().isoformat(timespec='seconds')
+    run['escalations']=[item['id'] for item in _escalate(root,run)]
     save(folder(root)/'runs'/f"{run['run_id']}.json",run)
     return run
+
+
+def _limits(root):
+    path=root/'config'/'cycle_limits.json'
+    return json.loads(path.read_text(encoding='utf-8')) if path.exists() else {}
+
+
+def _active(root,incidents):
+    lifecycle=incident_lifecycle.load(folder(root)/'lifecycle.json')['incidents']
+    return [i for i in incidents.incident_id if lifecycle.get(i,{}).get('stage') not in ('closed_rejected','approved_for_execution')]
+
+
+def _escalate(root,run):
+    """What the agent cannot resolve by itself goes to the engineer queue with a deadline."""
+    if not (root/'config'/'escalation.json').exists():return []
+    items=[]
+    if run['status'] in ('failed','invalid_input','too_many_incidents'):
+        items.append(escalation.raise_item(root,'Цикл агента','; '.join(run.get('errors',[])),run['run_id'],run['hour']))
+    for name,state in run['incidents'].items():
+        if state['stage']=='needs_attention':
+            items.append(escalation.raise_item(root,name,state.get('reason') or 'Расчёт остановлен',run['run_id'],run['hour']))
+    return items
 
 
 def tick(root,mode='simulated',now=None):

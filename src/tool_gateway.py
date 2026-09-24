@@ -8,11 +8,60 @@ import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 REPO=Path(__file__).resolve().parents[1]
 BACKENDS=('petex','stub')
 STUB_NOTE='Заглушка инструмента: проверка цепочки, не результат PROSPER/GAP/Codex'
+
+
+# Kind of limit for each external tool; see config/cycle_limits.json.
+WORKER_KIND={'run_live_gap':'gap_runs','fit_live_prosper':'prosper_runs','export_live_vlp':'prosper_runs'}
+LIMIT_LABEL={'llm_calls':'вызовы LLM','gap_runs':'запуски GAP','prosper_runs':'запуски PROSPER'}
+_tick=None
+
+
+class LimitExceeded(RuntimeError):
+    """The tick used up its budget of external calls; the cycle stops and escalates."""
+
+
+def start_tick(root):
+    """Open the per-tick counters. One tick runs at a time under the project cycle lock."""
+    global _tick
+    path=Path(root)/'config'/'cycle_limits.json'
+    limits=json.loads(path.read_text(encoding='utf-8')) if path.exists() else {}
+    _tick={'limits':limits,'llm_calls':0,'gap_runs':0,'prosper_runs':0,'llm_prompt_chars':0,'calls':[]}
+
+
+def finish_tick():
+    """Close the counters and return what the tick used: the basis of the run journal and cost."""
+    global _tick
+    tick,_tick=_tick,None
+    if tick is None:return {}
+    tokens=round(tick['llm_prompt_chars']/4)
+    price=tick['limits'].get('llm_price_per_1k_tokens_rub')
+    seconds={}
+    for call in tick['calls']:seconds[call['tool']]=round(seconds.get(call['tool'],0)+call['seconds'],3)
+    return {'llm_calls':tick['llm_calls'],'gap_runs':tick['gap_runs'],'prosper_runs':tick['prosper_runs'],
+            'llm_prompt_tokens_estimate':tokens,'llm_cost_rub':None if price is None else round(tokens/1000*price,2),
+            'tool_seconds':seconds,'failed_calls':[c for c in tick['calls'] if not c['ok']],
+            'limit_exceeded':tick.get('limit_exceeded')}
+
+
+def _count(kind):
+    if _tick is None:return
+    limit=_tick['limits'].get('max_'+kind)
+    if limit is not None and _tick[kind]>=limit:
+        message=f'Превышен лимит такта: {LIMIT_LABEL[kind]} — не более {limit}. Цикл остановлен и передан инженеру.'
+        _tick['limit_exceeded']=message
+        raise LimitExceeded(message)
+    _tick[kind]+=1
+
+
+def _record(tool,started,ok,**extra):
+    if _tick is not None:
+        _tick['calls'].append(dict(tool=tool,seconds=round(time.monotonic()-started,3),ok=ok,**extra))
 
 
 def backend():
@@ -34,19 +83,36 @@ def guard(root):
 
 def ask_codex(root,prompt,schema,cwd):
     guard(root)
-    if backend()=='stub':
-        from src import tool_stubs
-        return tool_stubs.codex(prompt,schema)
-    from src.codex_cli import ask_codex as real
-    return real(prompt,schema,cwd)
+    _count('llm_calls')
+    if _tick is not None:_tick['llm_prompt_chars']+=len(prompt)
+    started=time.monotonic()
+    try:
+        if backend()=='stub':
+            from src import tool_stubs
+            answer=tool_stubs.codex(prompt,schema)
+        else:
+            from src.codex_cli import ask_codex as real
+            answer=real(prompt,schema,cwd)
+    except Exception:
+        _record('llm',started,False,prompt_chars=len(prompt));raise
+    _record('llm',started,True,prompt_chars=len(prompt))
+    return answer
 
 
 def run_worker(root,script,request,output):
     """Run tools/<script>.py; returns CompletedProcess like subprocess.run."""
     guard(root)
+    _count(WORKER_KIND[script])
+    started=time.monotonic()
     if backend()=='stub':
         from src import tool_stubs
-        tool_stubs.worker(script,Path(request),Path(output))
-        return subprocess.CompletedProcess([script],0,STUB_NOTE,'')
-    return subprocess.run([sys.executable,str(Path(root)/'tools'/f'{script}.py'),'--request',str(request),'--output',str(output)],
-                          cwd=root,capture_output=True,text=True,encoding='utf-8',errors='replace')
+        try:tool_stubs.worker(script,Path(request),Path(output))
+        except Exception:
+            _record(script,started,False);raise
+        completed=subprocess.CompletedProcess([script],0,STUB_NOTE,'')
+    else:
+        # A live PetEx calculation is never killed by time: a killed worker leaves GAP/PROSPER open.
+        completed=subprocess.run([sys.executable,str(Path(root)/'tools'/f'{script}.py'),'--request',str(request),'--output',str(output)],
+                                 cwd=root,capture_output=True,text=True,encoding='utf-8',errors='replace')
+    _record(script,started,completed.returncode==0)
+    return completed

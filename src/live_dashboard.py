@@ -5,7 +5,7 @@ import pandas as pd
 import streamlit as st
 import altair as alt
 from src import incident_view, incident_lifecycle, live_monitor, potential_register, live_reasoning, live_checks
-from src import autonomous_cycle, cycle_service, live_execution, license_retry, tool_gateway
+from src import autonomous_cycle, cycle_service, escalation, live_execution, license_retry, tool_gateway
 from src import measurement_overview
 from src.calculation_dependencies import fingerprints
 import importlib
@@ -248,9 +248,20 @@ def render(root):
             st.dataframe(pd.DataFrame(incident_lifecycle.version_rows(life)),hide_index=True)
     with st.expander('Журнал запусков агента'):
         runs=cycle_service.recent_runs(root)
-        if runs:st.dataframe(pd.DataFrame([{'Запуск':r['run_id'],'Час':f"{r['hour']:02d}:00",'Итог':r['status'],'Длительность, с':r.get('duration_seconds'),
-            'Инциденты':'; '.join(f"{k}: {v['stage']}" for k,v in r.get('incidents',{}).items()),'Ошибки':'; '.join(r.get('errors',[]))} for r in runs]),hide_index=True)
+        if runs:
+            st.dataframe(pd.DataFrame([{'Запуск':r['run_id'],'Час':f"{r['hour']:02d}:00",'Итог':r['status'],'Длительность, с':r.get('duration_seconds'),
+            'LLM':r.get('tools',{}).get('llm_calls'),'GAP':r.get('tools',{}).get('gap_runs'),'PROSPER':r.get('tools',{}).get('prosper_runs'),
+            'Токены запроса (оценка)':r.get('tools',{}).get('llm_prompt_tokens_estimate'),
+            'Инциденты':'; '.join(f"{k}: {v['stage']}" for k,v in r.get('incidents',{}).items()),
+            'Ошибки':'; '.join(r.get('errors',[])+([r['tools']['limit_exceeded']] if r.get('tools',{}).get('limit_exceeded') else []))} for r in runs]),hide_index=True)
+            st.caption('Лимиты такта — config/cycle_limits.json. Токены — оценка по длине запроса (символы / 4): Codex CLI не сообщает фактический расход.')
         else:st.caption('Запусков пока не было.')
+    items=escalation.open_items(root)
+    with st.expander(f'Очередь эскалаций · открыто {len(items)}',expanded=bool(items)):
+        if items:st.dataframe(pd.DataFrame([{'Что':i['subject'],'Причина':i['reason'],'Кому сейчас':i['current_role'],
+            'Срок':i['deadline'].replace('T',' '),'Просрочено':'да' if i['overdue'] else 'нет','Час':f"{i['hour']:02d}:00",'Запуск':i['run_id']} for i in items]),hide_index=True)
+        else:st.caption('Открытых эскалаций нет.')
+        st.caption('Локальная очередь (data/live/escalations.json), уведомления не отправляются. Адресат и сроки — config/escalation.json.')
     with st.expander('Локальный реестр утверждений'):
         approvals=live_execution.approval_rows(root)
         if approvals:st.dataframe(pd.DataFrame(approvals),hide_index=True)

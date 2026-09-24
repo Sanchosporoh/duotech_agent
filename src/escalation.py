@@ -1,0 +1,54 @@
+"""Local escalation queue: what the agent could not resolve goes to a person with a deadline.
+
+MVP: the queue is a local file; nothing is sent. Addressee and deadlines come from
+config/escalation.json (table Р2). Deadlines are counted in calendar hours here.
+"""
+from datetime import datetime, timedelta
+import json
+import uuid
+from src.live_reasoning import save
+
+
+def _path(root):
+    return root/'data'/'live'/'escalations.json'
+
+
+def load(root):
+    path=_path(root)
+    return json.loads(path.read_text(encoding='utf-8')) if path.exists() else {'items':[]}
+
+
+def raise_item(root,subject,reason,run_id,hour,now=None):
+    """Add an open item unless the same subject and reason are already waiting."""
+    data=load(root)
+    for item in data['items']:
+        if item['status']=='open' and item['subject']==subject and item['reason']==reason:
+            return item
+    policy=json.loads((root/'config'/'escalation.json').read_text(encoding='utf-8'))
+    now=now or datetime.now()
+    item={'id':uuid.uuid4().hex[:8],'status':'open','subject':subject,'reason':reason,'run_id':run_id,'hour':hour,
+          'created_at':now.isoformat(timespec='seconds'),
+          'owner_role':policy['owner_role'],'deadline':(now+timedelta(hours=policy['response_hours'])).isoformat(timespec='minutes'),
+          'backup_role':policy['backup_role'],
+          'backup_deadline':(now+timedelta(hours=policy['response_hours']+policy['backup_response_hours'])).isoformat(timespec='minutes')}
+    data['items'].append(item)
+    save(_path(root),data)
+    return item
+
+
+def close(root,item_id,outcome):
+    data=load(root)
+    for item in data['items']:
+        if item['id']==item_id:
+            item.update(status='closed',outcome=outcome,closed_at=datetime.now().isoformat(timespec='seconds'))
+    save(_path(root),data)
+
+
+def open_items(root,now=None):
+    now=now or datetime.now()
+    items=[dict(i) for i in load(root)['items'] if i['status']=='open']
+    for item in items:
+        # After the owner's deadline the same item is shown to the backup role.
+        item['overdue']=now>datetime.fromisoformat(item['deadline'])
+        item['current_role']=item['backup_role'] if item['overdue'] else item['owner_role']
+    return items
