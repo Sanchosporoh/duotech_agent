@@ -10,7 +10,7 @@
    ```powershell
    C:\work-scripts\venv\Scripts\python.exe -c "from pathlib import Path; from src.reset_decisions import reset; print(reset(Path('.')))"
    ```
-4. Открыть витрину: `start_dashboard.bat` → http://127.0.0.1:8503/. Экран — «Агент ещё не обработал ни одного часа».
+4. Открыть витрину: `.start_dashboard.bat` (в PowerShell обязательно с `.`) → http://127.0.0.1:8503/. Экран — «Агент ещё не обработал ни одного часа».
 5. Подготовить второе окно PowerShell в каталоге проекта.
 
 ## Запись
