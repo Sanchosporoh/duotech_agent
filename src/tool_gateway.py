@@ -31,7 +31,20 @@ def start_tick(root):
     global _tick
     path=Path(root)/'config'/'cycle_limits.json'
     limits=json.loads(path.read_text(encoding='utf-8')) if path.exists() else {}
-    _tick={'limits':limits,'llm_calls':0,'gap_runs':0,'prosper_runs':0,'llm_prompt_chars':0,'calls':[]}
+    _tick={'limits':limits,'llm_calls':0,'gap_runs':0,'prosper_runs':0,'llm_prompt_chars':0,'calls':[],
+           'day':_used_today(Path(root))}
+
+
+def _used_today(root):
+    """Calls already spent today according to the run journal (daily budget, protects against cost attacks)."""
+    from datetime import date
+    used={'llm_calls':0,'gap_runs':0,'prosper_runs':0}
+    today=date.today().isoformat()
+    for path in (root/'data'/'live'/'runs').glob(today.replace('-','')+'-*.json'):
+        try:tools=json.loads(path.read_text(encoding='utf-8')).get('tools',{})
+        except (OSError,ValueError):continue
+        for kind in used:used[kind]+=tools.get(kind,0) or 0
+    return used
 
 
 def finish_tick():
@@ -54,6 +67,11 @@ def _count(kind):
     limit=_tick['limits'].get('max_'+kind)
     if limit is not None and _tick[kind]>=limit:
         message=f'Превышен лимит такта: {LIMIT_LABEL[kind]} — не более {limit}. Цикл остановлен и передан инженеру.'
+        _tick['limit_exceeded']=message
+        raise LimitExceeded(message)
+    daily=_tick['limits'].get(f'max_{kind}_per_day')
+    if daily is not None and _tick['day'].get(kind,0)+_tick[kind]>=daily:
+        message=f'Исчерпан суточный бюджет: {LIMIT_LABEL[kind]} — не более {daily} за сутки. Цикл остановлен и передан инженеру.'
         _tick['limit_exceeded']=message
         raise LimitExceeded(message)
     _tick[kind]+=1

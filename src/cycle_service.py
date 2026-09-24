@@ -127,12 +127,17 @@ def _decision_waits(root,run):
     if 'decision_response_hours' not in policy:return []
     path=folder(root)/'decision_wait.json'
     waits=json.loads(path.read_text(encoding='utf-8')) if path.exists() else {}
+    lifecycle=incident_lifecycle.load(folder(root)/'lifecycle.json')['incidents']
     items=[]
     for name,state in run['incidents'].items():
-        if state['stage']!='awaiting_human_decision':
-            waits.pop(name,None)  # decided, recalculating or closed: the wait starts again
-            continue
-        since=waits.setdefault(name,run['hour'])
+        version=len(lifecycle.get(name,{}).get('versions',[]))
+        wait=waits.get(name)
+        # Any engineer decision (including a return with a comment) starts the wait again.
+        if state['stage']!='awaiting_human_decision' or (isinstance(wait,dict) and wait['version']!=version):
+            waits.pop(name,None)
+            if state['stage']!='awaiting_human_decision':continue
+        wait=waits.setdefault(name,{'since':run['hour'],'version':version})
+        since=wait['since']
         if run['hour']-since>=policy['decision_response_hours']:
             items.append(escalation.raise_item(root,name,f"Готовое предложение с {since:02d}:00 ждёт решения инженера дольше {policy['decision_response_hours']} ч",
                                                run['run_id'],run['hour'],kind='decision'))

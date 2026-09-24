@@ -1,0 +1,210 @@
+{
+  "scenario": "Возврат предложения с новым комментарием каждый час (полный пересчёт каждый такт)",
+  "limits": {
+    "max_llm_calls": 4,
+    "max_llm_calls_per_day": 20,
+    "max_gap_runs": 4,
+    "max_gap_runs_per_day": 30
+  },
+  "stopped": {
+    "hour": 16,
+    "message": "Исчерпан суточный бюджет: запуски GAP — не более 30 за сутки. Цикл остановлен и передан инженеру."
+  },
+  "llm_calls_total": 20,
+  "hours": [
+    {
+      "hour": 0,
+      "llm_calls": 0,
+      "llm_calls_today": 0,
+      "stage": null,
+      "limit": null
+    },
+    {
+      "hour": 1,
+      "llm_calls": 0,
+      "llm_calls_today": 0,
+      "stage": null,
+      "limit": null
+    },
+    {
+      "hour": 2,
+      "llm_calls": 0,
+      "llm_calls_today": 0,
+      "stage": null,
+      "limit": null
+    },
+    {
+      "hour": 3,
+      "llm_calls": 0,
+      "llm_calls_today": 0,
+      "stage": null,
+      "limit": null
+    },
+    {
+      "hour": 4,
+      "llm_calls": 0,
+      "llm_calls_today": 0,
+      "stage": null,
+      "limit": null
+    },
+    {
+      "hour": 5,
+      "llm_calls": 0,
+      "llm_calls_today": 0,
+      "stage": null,
+      "limit": null
+    },
+    {
+      "hour": 6,
+      "llm_calls": 2,
+      "llm_calls_today": 2,
+      "stage": "awaiting_human_decision",
+      "limit": null
+    },
+    {
+      "hour": 7,
+      "llm_calls": 2,
+      "llm_calls_today": 4,
+      "stage": "awaiting_human_decision",
+      "limit": null
+    },
+    {
+      "hour": 8,
+      "llm_calls": 2,
+      "llm_calls_today": 6,
+      "stage": "awaiting_human_decision",
+      "limit": null
+    },
+    {
+      "hour": 9,
+      "llm_calls": 2,
+      "llm_calls_today": 8,
+      "stage": "awaiting_human_decision",
+      "limit": null
+    },
+    {
+      "hour": 10,
+      "llm_calls": 2,
+      "llm_calls_today": 10,
+      "stage": "awaiting_human_decision",
+      "limit": null
+    },
+    {
+      "hour": 11,
+      "llm_calls": 0,
+      "llm_calls_today": 10,
+      "stage": "needs_data",
+      "limit": null
+    },
+    {
+      "hour": 12,
+      "llm_calls": 0,
+      "llm_calls_today": 10,
+      "stage": "needs_data",
+      "limit": null
+    },
+    {
+      "hour": 13,
+      "llm_calls": 2,
+      "llm_calls_today": 12,
+      "stage": "awaiting_human_decision",
+      "limit": null
+    },
+    {
+      "hour": 14,
+      "llm_calls": 2,
+      "llm_calls_today": 14,
+      "stage": "awaiting_human_decision",
+      "limit": null
+    },
+    {
+      "hour": 15,
+      "llm_calls": 3,
+      "llm_calls_today": 17,
+      "stage": "awaiting_human_decision",
+      "limit": null
+    },
+    {
+      "hour": 16,
+      "llm_calls": 3,
+      "llm_calls_today": 20,
+      "stage": "needs_attention",
+      "limit": "Исчерпан суточный бюджет: запуски GAP — не более 30 за сутки. Цикл остановлен и передан инженеру."
+    },
+    {
+      "hour": 17,
+      "llm_calls": 0,
+      "llm_calls_today": 20,
+      "stage": "needs_attention",
+      "limit": "Исчерпан суточный бюджет: вызовы LLM — не более 20 за сутки. Цикл остановлен и передан инженеру."
+    },
+    {
+      "hour": 18,
+      "llm_calls": 0,
+      "llm_calls_today": 20,
+      "stage": "needs_attention",
+      "limit": "Исчерпан суточный бюджет: вызовы LLM — не более 20 за сутки. Цикл остановлен и передан инженеру."
+    },
+    {
+      "hour": 19,
+      "llm_calls": 0,
+      "llm_calls_today": 20,
+      "stage": "needs_attention",
+      "limit": "Исчерпан суточный бюджет: вызовы LLM — не более 20 за сутки. Цикл остановлен и передан инженеру."
+    },
+    {
+      "hour": 20,
+      "llm_calls": 0,
+      "llm_calls_today": 20,
+      "stage": "needs_attention",
+      "limit": "Исчерпан суточный бюджет: вызовы LLM — не более 20 за сутки. Цикл остановлен и передан инженеру."
+    },
+    {
+      "hour": 21,
+      "llm_calls": 0,
+      "llm_calls_today": 20,
+      "stage": "needs_attention",
+      "limit": "Исчерпан суточный бюджет: вызовы LLM — не более 20 за сутки. Цикл остановлен и передан инженеру."
+    },
+    {
+      "hour": 22,
+      "llm_calls": 0,
+      "llm_calls_today": 20,
+      "stage": "needs_attention",
+      "limit": "Исчерпан суточный бюджет: вызовы LLM — не более 20 за сутки. Цикл остановлен и передан инженеру."
+    },
+    {
+      "hour": 23,
+      "llm_calls": 0,
+      "llm_calls_today": 20,
+      "stage": "needs_attention",
+      "limit": "Исчерпан суточный бюджет: вызовы LLM — не более 20 за сутки. Цикл остановлен и передан инженеру."
+    }
+  ],
+  "escalations": [
+    {
+      "subject": "INC-20260914-0600",
+      "reason": "Исчерпан суточный бюджет: запуски GAP — не более 30 за сутки. Цикл остановлен и передан инженеру.",
+      "owner_role": "инженер-моделист",
+      "hour": 16
+    },
+    {
+      "subject": "INC-20260914-1500",
+      "reason": "Исчерпан суточный бюджет: запуски GAP — не более 30 за сутки. Цикл остановлен и передан инженеру.",
+      "owner_role": "инженер-моделист",
+      "hour": 16
+    },
+    {
+      "subject": "INC-20260914-0600",
+      "reason": "Исчерпан суточный бюджет: вызовы LLM — не более 20 за сутки. Цикл остановлен и передан инженеру.",
+      "owner_role": "инженер-моделист",
+      "hour": 17
+    },
+    {
+      "subject": "INC-20260914-1500",
+      "reason": "Исчерпан суточный бюджет: вызовы LLM — не более 20 за сутки. Цикл остановлен и передан инженеру.",
+      "owner_role": "инженер-моделист",
+      "hour": 17
+    }
+  ]
+}

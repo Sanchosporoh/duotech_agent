@@ -107,3 +107,27 @@ class DecisionWaitTests(unittest.TestCase):
             cycle_service.tick(root);cycle_service.tick(root)   # 10:00 — 4 h: his head; the item is not duplicated
             items=escalation.open_items(root,agent_hour=10)
             self.assertEqual([(i['current_role'],i['overdue']) for i in items],[('начальник технологического отдела ЦДНГ',True)])
+
+    def test_return_with_comment_restarts_the_decision_wait(self):
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory, patch.dict(os.environ,{'AGENT_TOOL_BACKEND':'stub'}):
+            from src import incident_lifecycle
+            root=make_project(directory)
+            run_until(root,7)
+            incident_lifecycle.record_decision(root/'data/live/lifecycle.json',FIRST,'На доработке','Не трогать W13',None,'test')
+            cycle_service.tick(root);cycle_service.tick(root)   # 08:00 and 09:00: only 1 h since the new version
+            self.assertEqual(escalation.open_items(root),[])
+
+    def test_daily_budget_stops_repeated_recalculation(self):
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory, patch.dict(os.environ,{'AGENT_TOOL_BACKEND':'stub'}):
+            from src import incident_lifecycle
+            root=make_project(directory)
+            set_limits(root,max_llm_calls_per_day=5)
+            run=None
+            for _ in range(10):
+                run=cycle_service.tick(root)
+                if run['incidents'].get(FIRST,{}).get('stage')=='awaiting_human_decision':
+                    incident_lifecycle.record_decision(root/'data/live/lifecycle.json',FIRST,'На доработке',f"комментарий {run['hour']}",None,'test')
+                if run['tools'].get('limit_exceeded'):break
+            self.assertIn('суточный бюджет',run['tools']['limit_exceeded'])
+            self.assertEqual(run['incidents'][FIRST]['stage'],'needs_attention')
+
