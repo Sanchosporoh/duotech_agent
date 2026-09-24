@@ -21,6 +21,13 @@ def make_project(root, conditions=True):
     # Prior PROSPER curves referenced by the diagnostic configuration.
     for name in ('prosper_diagnostic_audit_W27.json', 'petex_baseline.csv'):
         shutil.copyfile(ROOT/'data'/name, root/'data'/name)
+    # Same set of PROSPER working models as the project runtime copy: names only,
+    # the agent discovers models by file name and stub workers never open them.
+    models = root/'runtime/petex_case/IM_2022_06'
+    models.mkdir(parents=True, exist_ok=True)
+    for source in (ROOT/'runtime/petex_case/IM_2022_06').glob('*'):
+        if source.suffix.lower() == '.out':
+            (models/source.name).write_text('placeholder for tests', encoding='utf-8')
     incident_view.write_initial_measurements(ROOT, root/'data/live')
     if conditions:
         # Same operating conditions the engineer entered for W27 in data/live/telemetry.csv.
