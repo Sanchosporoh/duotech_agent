@@ -78,7 +78,7 @@ def prepare(root,context,key,answer,checks,model_state=None,reuse=None):
              'opportunities':eligible,'constraints':{'minimum_fbhp_bar':80,'water_limit':'текущий уровень сепаратора',
              'budget':'не задан','crew_availability':'не задан'},'excluded':excluded,'model_state':model_state}
     if model_state is not None and not model_state['ready']:
-        return {'stage':'waiting_license' if model_state.get('stage')=='waiting_license' else 'awaiting_model_state','need':need,'reason':model_state['reason']}
+        return {'stage':model_state['stage'] if model_state.get('stage') in ('waiting_license','waiting_petex') else 'awaiting_model_state','need':need,'reason':model_state['reason']}
     def finish(plan):
         plan=calculate(root,context,key,plan,eligible)
         alternatives=plan.get('network',{}).get('alternatives',[])

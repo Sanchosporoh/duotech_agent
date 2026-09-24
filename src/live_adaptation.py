@@ -84,7 +84,7 @@ def prepare_lifts(root,context,adaptation):
         excluded.append({'well_id':fit['well_id'],'reason':reason})
         assumptions.append(fit['well_id']+': не регулируется планом — '+reason+'. В сети остаётся исходная модель скважины (допущение)')
     for fit in adaptation:
-        if fit.get('stage') in ('waiting_license','running'):
+        if fit.get('stage') in ('waiting_license','waiting_petex','running'):
             return {'ready':False,'stage':fit['stage'],'reason':fit['well_id']+': '+fit.get('reason','Расчёт ещё не завершён'),'well_id':fit['well_id']}
         if fit.get('stage')=='screened':
             assumptions.append(fit['well_id']+': '+fit['reason'])
