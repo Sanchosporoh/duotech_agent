@@ -45,7 +45,7 @@ Claude Code следует запускать из корня репозитор
 ```powershell
 python -m venv .venv
 .venv\Scripts\python.exe -m pip install -r requirements.txt
-start_dashboard.bat
+.\start_dashboard.bat
 ```
 
 Локальный экран без запроса email:
@@ -57,7 +57,7 @@ python -m streamlit run dashboard.py --server.port 8503
 Агент работает отдельным процессом, без витрины:
 
 ```powershell
-start_agent.bat                                                     # демо: один учебный час в минуту до 23:00
+.\start_agent.bat                                                   # демо: один учебный час в минуту до 23:00
 C:\work-scripts\venv\Scripts\python.exe tools\run_agent.py --once          # один такт
 C:\work-scripts\venv\Scripts\python.exe tools\run_agent.py --loop --clock wall --interval 300   # реальное время
 C:\work-scripts\venv\Scripts\python.exe tools\run_agent.py --reset         # начать сутки заново
