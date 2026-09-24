@@ -3,7 +3,7 @@ from datetime import datetime
 import hashlib
 import json
 import math
-from src import live_reasoning, live_checks, incident_lifecycle, live_planning, live_adaptation, restoration_planning, proposal_selection, license_retry
+from src import live_reasoning, live_checks, incident_lifecycle, live_planning, live_adaptation, restoration_planning, proposal_selection, license_retry, recompute_policy
 from src.cycle_lock import acquire
 from src.calculation_dependencies import fingerprints
 
@@ -69,11 +69,13 @@ def _run(root, separator, telemetry, hour, incidents):
 
     The separator deficit belongs to the field, not to one incident: several
     incidents share one plan, so the same shortfall is never compensated twice.
+    While incidents wait for a decision, the recompute level (full / network /
+    none) compares the new hour with the last full calculation.
     """
     folder=root/'data'/'live'
     statuses={}
     dependencies=fingerprints(root) if not incidents.empty else {}
-    active=[]  # (identity, life, context, key, execution, state, diagnosis)
+    pending=[]  # (identity, life, context, key, execution, response)
     for _,row in incidents.iterrows():
         identity=row.incident_id
         life=incident_lifecycle.ensure_incident(folder/'lifecycle.json',identity,'Причина определяется по измерениям')
@@ -98,23 +100,45 @@ def _run(root, separator, telemetry, hour, incidents):
                     if not free:
                         statuses[identity]=dict(previous,reason='Дочерний расчёт PetEx ещё работает. Ожидаем завершения.')
                         continue
-                if not response.exists():
+                if not response.exists() and previous.get('recompute',{}).get('level')=='full':
                     previous.update(stage='needs_attention',reason='Предыдущий цикл прерван до сохранения ответа Codex. Автоповтор не запущен: состояние прежнего вызова неизвестно.')
                     live_reasoning.save(execution,previous)
             if previous['stage']=='needs_attention':
                 statuses[identity]=previous
                 continue  # repeated ticks must not cause an endless retry loop
-        state={'fingerprint':key,'incident_id':identity,'stage':'running','started_at':datetime.now().isoformat()}
+        pending.append((identity,life,context,key,execution,response))
+    if not pending:
+        return statuses
+    policy=recompute_policy.load(root)
+    current=recompute_policy.signature(separator,telemetry,hour,[p[0] for p in pending],
+        {p[0]:p[2].get('engineer_comment','') for p in pending},
+        hashlib.sha256(json.dumps(dependencies,sort_keys=True).encode()).hexdigest())
+    basis_path=folder/'field_basis.json'
+    basis=json.loads(basis_path.read_text(encoding='utf-8')) if basis_path.exists() else None
+    level,reasons=recompute_policy.classify(policy,basis,current)
+    if level!='full' and not basis.get('plan',{}).get('proposal'):
+        level,reasons='full',['Прежний полный расчёт не дал наборов мероприятий']
+    if level=='none' and not basis['plan'].get('network'):
+        level,reasons='network',['Прежний полный расчёт не дал результата сети']
+    recompute={'level':level,'reasons':reasons,'basis_hour':current['hour'] if level=='full' else basis['hour']}
+    active=[]  # (identity, life, context, key, execution, state, diagnosis)
+    for identity,life,context,key,execution,response in pending:
+        state={'fingerprint':key,'incident_id':identity,'stage':'running','started_at':datetime.now().isoformat(),'recompute':recompute}
         live_reasoning.save(execution,state)
         try:
-            if response.exists():
-                result=json.loads(response.read_text(encoding='utf-8'))
+            if level!='full':
+                # Nothing new about the wells: keep the diagnosis of the last full calculation.
+                diagnosis=basis['diagnosis'][identity]
+                result={'answer':diagnosis['answer']}
+                state.update(checks=diagnosis['checks'],adaptation=diagnosis['adaptation'],diagnosis_hour=basis['hour'])
             else:
-                result=live_reasoning.generate(root,context,key)
-                live_reasoning.save(response,result)
-            checks=live_checks.execute(root,context,result['answer'])
-            adaptation=live_adaptation.run(root,context,key,result['answer'])
-            state.update(checks=checks,adaptation=adaptation)
+                if response.exists():
+                    result=json.loads(response.read_text(encoding='utf-8'))
+                else:
+                    result=live_reasoning.generate(root,context,key)
+                    live_reasoning.save(response,result)
+                state.update(checks=live_checks.execute(root,context,result['answer']),
+                             adaptation=live_adaptation.run(root,context,key,result['answer']))
             active.append((identity,life,context,key,execution,state,result['answer']))
         except Exception as exc:
             state.update(stage='needs_attention',error=str(exc))
@@ -122,7 +146,10 @@ def _run(root, separator, telemetry, hour, incidents):
             statuses[identity]=state
     if not active:
         return statuses
-    field=_field_plan(root,hour,active,failed=[i for i,s in statuses.items() if s.get('stage')=='needs_attention'])
+    reuse=None if level=='full' else dict(basis['plan'],level=level,model_state=basis['model_state'])
+    field=_field_plan(root,hour,active,failed=[i for i,s in statuses.items() if s.get('stage')=='needs_attention'],reuse=reuse)
+    field['recompute']=recompute
+    _update_basis(basis_path,basis,current,level,active,field)
     for identity,life,context,key,execution,state,_ in active:
         state.update({name:field[name] for name in ('stage','plan','model_state','recommendation','next_step','error','reason') if name in field})
         state['field_plan']={'key':field['key'],'incidents':field['incidents']}
@@ -135,7 +162,22 @@ def _run(root, separator, telemetry, hour, incidents):
     return statuses
 
 
-def _field_plan(root,hour,active,failed):
+def _update_basis(path,basis,current,level,active,field):
+    """Remember the last full calculation; a GAP-only recompute refreshes its network part."""
+    plan=field.get('plan',{})
+    if field.get('stage')=='needs_attention' or not plan.get('proposal'):return
+    kept={name:plan[name] for name in ('proposal','network','capacity_check','restoration_forecast') if name in plan}
+    if level=='full':
+        basis=dict(current,diagnosis={i[0]:{'answer':i[6],'checks':i[5]['checks'],'adaptation':i[5]['adaptation']} for i in active},
+                   plan=kept,model_state=field.get('model_state'))
+    elif level=='network':
+        basis=dict(basis,controls=current['controls'],water_m3d=current['water_m3d'],plan=kept)
+    else:
+        return
+    live_reasoning.save(path,basis)
+
+
+def _field_plan(root,hour,active,failed,reuse=None):
     """One compensation plan for all incidents that are open at this hour."""
     identities=[item[0] for item in active]
     key=hashlib.sha256(json.dumps(sorted(item[3] for item in active)).encode()).hexdigest()
@@ -154,9 +196,12 @@ def _field_plan(root,hour,active,failed):
     checks=[row for item in active for row in item[5]['checks']]
     adaptation=list({fit['well_id']:fit for item in active for fit in item[5]['adaptation']}.values())
     try:
-        model_state=live_adaptation.prepare_lifts(root,context,adaptation)
-        plan=live_planning.prepare(root,context,key,answer,checks,model_state)
-        if model_state.get('ready') and 'network' in plan:
+        model_state=reuse['model_state'] if reuse else live_adaptation.prepare_lifts(root,context,adaptation)
+        plan=live_planning.prepare(root,context,key,answer,checks,model_state,reuse=reuse)
+        previous=(reuse or {}).get('restoration_forecast',{})
+        if reuse and reuse['level']=='none' and previous.get('network_result') and 'network' in plan:
+            plan['restoration_forecast']=restoration_planning.forecast(context,plan,previous['measure'],previous['well_id'],previous['network_result'])
+        elif model_state.get('ready') and 'network' in plan:
             plan['restoration_forecast']=restoration_planning.prepare(root,context,key,plan,model_state)
         recommendation=proposal_selection.select(context,plan)
         field.update(stage=plan['stage'],plan=plan,model_state=model_state,recommendation=recommendation,

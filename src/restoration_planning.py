@@ -2,6 +2,7 @@
 import hashlib
 import json
 from src.calculation_result import completed as result_completed, preserve_previous
+from pathlib import Path
 import pandas as pd
 from src.live_reasoning import save
 from src.restoration_forecast import horizon
@@ -43,7 +44,14 @@ def prepare(root,context,key,plan,model_state):
             return dict(failure,ready=False)
         license_retry.success(root)
         save(attempt,{'stage':'completed'})
-    alternatives=json.loads(output.read_text(encoding='utf-8'))['alternatives']
+    result=forecast(context,plan,measure,well,output)
+    save(folder/'forecast.json',result)
+    return result
+
+
+def forecast(context,plan,measure,well,output):
+    """Phase balance for the current need from an already calculated network result."""
+    alternatives=json.loads(Path(output).read_text(encoding='utf-8'))['alternatives']
     valid=len(alternatives)==3 and all(a.get('status')=='conditional_calculated' and a.get('water_limit_met') and a.get('fbhp_limit_met') for a in alternatives)
     if valid:
         need=plan['need']
@@ -55,5 +63,4 @@ def prepare(root,context,key,plan,model_state):
     else:result={'ready':False,'reason':'Не все фазы дали допустимый результат GAP','approved_for_execution':False}
     result.update(measure=measure,well_id=well,network_result=str(output),
                   unresolved=['Применимость промывки к причине ухудшения требует инженерного подтверждения','Доступность бригады и стоимость не заданы','Успех промывки не гарантирован','Остаточная невязка текущей сети с сепаратором не согласована'])
-    save(folder/'forecast.json',result)
     return result

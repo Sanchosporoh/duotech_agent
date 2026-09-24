@@ -78,7 +78,7 @@ def process_hour(root,hour):
             else:
                 try:
                     states=autonomous_cycle.run(root,separator,telemetry,hour,incidents)
-                    run['incidents']={name:{'stage':s.get('stage'),'reason':s.get('reason') or s.get('error') or s.get('plan',{}).get('reason')}
+                    run['incidents']={name:{'stage':s.get('stage'),'recompute':s.get('recompute',{}).get('level'),'reason':s.get('reason') or s.get('error') or s.get('plan',{}).get('reason')}
                                       for name,s in states.items()}
                     run['status']='processed'
                 except Exception as exc:  # the journal must record any crash of the cycle

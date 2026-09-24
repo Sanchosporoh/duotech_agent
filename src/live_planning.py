@@ -56,7 +56,8 @@ def forecast_need(context):
                     f'накопленный недобор в диапазоне {deficit_low:.2f}…{deficit:.2f} т, для потребности взята худшая граница'))}
 
 
-def prepare(root,context,key,answer,checks,model_state=None):
+def prepare(root,context,key,answer,checks,model_state=None,reuse=None):
+    """reuse: measure sets (and for level 'none' the network result) of the last full calculation."""
     need=forecast_need(context)
     if not need['ready']: return {'stage':'needs_data','need':need,'reason':need['reason']}
     register=json.loads((root/'data'/'opportunity_register_structured.json').read_text(encoding='utf-8'))
@@ -87,6 +88,20 @@ def prepare(root,context,key,answer,checks,model_state=None):
                 'selected_wells':[i['well_id'] for i in eligible]}]}}
             plan['capacity_check']=calculate(root,context,key+'_capacity',capacity,eligible)
         return plan
+    if reuse:
+        reuse=json.loads(json.dumps(reuse))
+        allowed={i['well_id'] for i in eligible}
+        # Previous sets are valid only while all their wells are still available.
+        if all(set(a['selected_wells'])<=allowed for a in reuse['proposal']['alternatives']):
+            plan={'stage':'awaiting_model_state','input':payload,'need':need,'proposal':reuse['proposal'],'reused':reuse['level'],
+                  'reason':'Наборы мероприятий взяты из последнего полного расчёта'}
+            if reuse['level']=='none' and reuse.get('network'):
+                plan.update(network=reuse['network'],stage='conditional_network_calculated')
+                plan=evaluate_horizon(plan)
+                if reuse.get('capacity_check',{}).get('network'):
+                    plan['capacity_check']=evaluate_horizon(dict(reuse['capacity_check'],need=need))
+                return plan
+            return finish(plan)
     path=root/'data'/'live'/'plans'/f'{key}.json'
     # Register and tool results participate in the plan cache, not just measurements.
     if path.exists():

@@ -132,6 +132,10 @@ def render(root):
             if execution_state.get('stage')=='approved_for_execution':
                 st.success('Решение утверждено. Эффекты выполняются по часам из локального реестра.')
             if execution_state.get('error') and execution_state.get('stage')!='waiting_license': st.error('Цикл остановлен: '+execution_state['error'])
+            recompute=execution_state.get('recompute')
+            if recompute:
+                label={'full':'полный (диагностика, наборы, GAP)','network':'только сеть GAP по прежним наборам','none':'без расчётов: обновлены недобор и баланс'}[recompute['level']]
+                st.caption(f"Пересчёт в этом часу: {label}. Последний полный расчёт — {recompute['basis_hour']:02d}:00. "+'; '.join(recompute['reasons']))
             st.caption('Состояние агента: '+{'pending':'Агент ещё не обработал текущие данные','needs_data':'Недостаточно данных для расчёта','waiting_license':'Ожидание лицензии OpenServer','running':'Расчёт выполняется','needs_attention':'Работа остановлена — причина указана ниже','awaiting_human_decision':'Предложение готово, требуется утверждение','awaiting_model_state':'Недостаточно данных для расчёта сети','conditional_network_calculated':'Сеть рассчитана, результаты предварительные','approved_for_execution':'Решение утверждено'}.get(execution_state.get('stage'),str(execution_state.get('stage'))))
             if not recommendation.get('ready'):
                 st.warning('Решение пока не готово: '+execution_state.get('reason',execution_state.get('error',execution_state.get('plan',{}).get('reason',recommendation.get('reason','Нет завершённого допустимого расчёта')))))
@@ -252,7 +256,7 @@ def render(root):
             st.dataframe(pd.DataFrame([{'Запуск':r['run_id'],'Час':f"{r['hour']:02d}:00",'Итог':r['status'],'Длительность, с':r.get('duration_seconds'),
             'LLM':r.get('tools',{}).get('llm_calls'),'GAP':r.get('tools',{}).get('gap_runs'),'PROSPER':r.get('tools',{}).get('prosper_runs'),
             'Токены запроса (оценка)':r.get('tools',{}).get('llm_prompt_tokens_estimate'),
-            'Инциденты':'; '.join(f"{k}: {v['stage']}" for k,v in r.get('incidents',{}).items()),
+            'Инциденты':'; '.join(f"{k}: {v['stage']}"+(f" ({v['recompute']})" if v.get('recompute') else '') for k,v in r.get('incidents',{}).items()),
             'Ошибки':'; '.join(r.get('errors',[])+([r['tools']['limit_exceeded']] if r.get('tools',{}).get('limit_exceeded') else []))} for r in runs]),hide_index=True)
             st.caption('Лимиты такта — config/cycle_limits.json. Токены — оценка по длине запроса (символы / 4): Codex CLI не сообщает фактический расход.')
         else:st.caption('Запусков пока не было.')

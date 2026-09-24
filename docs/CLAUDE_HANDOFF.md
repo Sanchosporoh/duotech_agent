@@ -112,6 +112,8 @@ PROSPER ранжирует модельные объяснения, но не д
 | `src/measurement_overview.py` | Телеметрия, плитки вклада скважин и невязка сепаратора |
 | `src/cycle_service.py` | Один почасовой такт агента: чтение и проверка данных, часы агента, журнал запусков |
 | `tools/run_agent.py` | Фоновый исполнитель тактов; `start_agent.bat` — демо-запуск |
+| `src/recompute_policy.py` | Уровень пересчёта ожидающих инцидентов: полный / только GAP / без расчётов (`config/recompute_policy.json`) |
+| `src/escalation.py` | Локальная очередь эскалаций с адресатом и сроком (`config/escalation.json`) |
 | `src/tool_gateway.py` | Единая точка вызова Codex/PROSPER/GAP; режим `AGENT_TOOL_BACKEND=petex` (по умолчанию) или `stub` |
 | `src/tool_stubs.py` | Детерминированные заглушки инструментов для тестов и прогонов без лицензий; результаты помечены `tool_backend: stub` |
 

@@ -3,17 +3,25 @@ from contextlib import contextmanager
 import os
 
 
+def _is_empty(path):
+    return path.stat().st_size==0
+
+
 @contextmanager
 def acquire(root, name='cycle.lock'):
     if name not in ('cycle.lock','petex.lock','lifecycle.lock'):
         raise ValueError('Unknown project lock')
     path=root/'data/live'/name
     path.parent.mkdir(parents=True,exist_ok=True)
-    stream=path.open('a+b')
+    # Unbuffered: a failed first write must not stay in a buffer and fail again on close.
+    stream=path.open('a+b',buffering=0)
     locked=False
     try:
-        if path.stat().st_size==0:
-            stream.write(b'0');stream.flush()
+        if _is_empty(path):
+            try:
+                stream.write(b'0')
+            except OSError:
+                pass  # another process created the file and locked its byte at this very moment
         stream.seek(0)
         try:
             if os.name=='nt':
