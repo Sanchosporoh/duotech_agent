@@ -84,6 +84,14 @@ class RunAgentCommandTests(unittest.TestCase):
             self.assertEqual(json.loads(completed.stdout.strip().splitlines()[-1])['hour'],0)
             self.assertEqual(cycle_service.clock(root)['hour'],0)
 
+    def test_loop_stops_at_requested_hour(self):
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
+            root=make_project(directory)
+            completed=subprocess.run([sys.executable,str(ROOT/'tools/run_agent.py'),'--root',str(root),'--backend','stub','--loop','--interval','0','--stop-at','3'],
+                                     capture_output=True,text=True,encoding='utf-8',timeout=120)
+            self.assertEqual(completed.returncode,0,completed.stderr)
+            self.assertEqual(cycle_service.clock(root)['hour'],3)
+
     def test_stub_backend_is_refused_before_touching_the_working_project(self):
         before=sorted(p.name for p in (ROOT/'data/live').glob('*')) if (ROOT/'data/live').exists() else []
         with patch.dict(os.environ,{'AGENT_TOOL_BACKEND':'stub'}):

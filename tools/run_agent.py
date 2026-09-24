@@ -3,6 +3,7 @@
 Examples (project venv):
   python tools/run_agent.py --once                         one new hour (simulated clock)
   python tools/run_agent.py --loop --interval 60           demo: one hour per minute until 23:00
+  python tools/run_agent.py --loop --interval 10 --stop-at 6   demo: stop after 06:00 to show the decision
   python tools/run_agent.py --loop --clock wall --interval 300   real time: current hour every 5 min
   python tools/run_agent.py --root <copy> --backend stub --loop   whole chain without licenses
 
@@ -29,6 +30,7 @@ def main():
     mode.add_argument('--loop',action='store_true',help='такты с паузой --interval')
     mode.add_argument('--reset',action='store_true',help='начать сутки заново (часы агента на 00:00 при следующем такте)')
     parser.add_argument('--interval',type=float,default=60.,help='пауза между тактами, с')
+    parser.add_argument('--stop-at',type=int,help='остановиться после обработки этого часа (демонстрация)')
     args=parser.parse_args()
     if args.backend:os.environ['AGENT_TOOL_BACKEND']=args.backend
     from src import cycle_service
@@ -40,6 +42,7 @@ def main():
         print(json.dumps({k:result.get(k) for k in ('hour','status','incidents','errors','duration_seconds')},ensure_ascii=False),flush=True)
         if not args.loop or result['status']=='day_finished':break
         if args.clock=='simulated' and result['hour']>=cycle_service.LAST_HOUR:break
+        if args.stop_at is not None and result['hour']>=args.stop_at:break
         time.sleep(args.interval)
 
 
