@@ -37,6 +37,10 @@ def raise_item(root,subject,reason,run_id,hour,now=None,kind='agent'):
           'created_at':now.isoformat(timespec='seconds'),
           'owner_role':owner,'deadline':(now+timedelta(hours=hours)).isoformat(timespec='minutes'),
           'backup_role':backup,'backup_deadline':(now+timedelta(hours=hours+extra)).isoformat(timespec='minutes')}
+    if kind=='decision':
+        # The wait is counted in agent hours: the item is raised when the owner's time is over,
+        # the backup role takes over after the backup time.
+        item.update(deadline_hour=hour+extra,deadline=f'{(hour+extra)%24:02d}:00 (час агента)',backup_deadline=None)
     data['items'].append(item)
     save(_path(root),data)
     return item
@@ -50,11 +54,14 @@ def close(root,item_id,outcome):
     save(_path(root),data)
 
 
-def open_items(root,now=None):
+def open_items(root,now=None,agent_hour=None):
     now=now or datetime.now()
     items=[dict(i) for i in load(root)['items'] if i['status']=='open']
     for item in items:
         # After the owner's deadline the same item is shown to the backup role.
-        item['overdue']=now>datetime.fromisoformat(item['deadline'])
+        if 'deadline_hour' in item:
+            item['overdue']=agent_hour is not None and agent_hour>=item['deadline_hour']
+        else:
+            item['overdue']=now>datetime.fromisoformat(item['deadline'])
         item['current_role']=item['backup_role'] if item['overdue'] else item['owner_role']
     return items

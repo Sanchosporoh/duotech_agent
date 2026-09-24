@@ -129,7 +129,7 @@ def _decision_waits(root,run):
             continue
         since=waits.setdefault(name,run['hour'])
         if run['hour']-since>=policy['decision_response_hours']:
-            items.append(escalation.raise_item(root,name,f"Готовое предложение ждёт решения инженера с {since:02d}:00 дольше {policy['decision_response_hours']} ч",
+            items.append(escalation.raise_item(root,name,f"Готовое предложение с {since:02d}:00 ждёт решения инженера дольше {policy['decision_response_hours']} ч",
                                                run['run_id'],run['hour'],kind='decision'))
     save(path,waits)
     return items

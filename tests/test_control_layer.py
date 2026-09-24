@@ -99,10 +99,11 @@ class DecisionWaitTests(unittest.TestCase):
     def test_unanswered_proposal_is_escalated_to_the_field_technologist(self):
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory, patch.dict(os.environ,{'AGENT_TOOL_BACKEND':'stub'}):
             root=make_project(directory)
-            run_until(root,9)   # ready at 06:00, nobody decides; 09:00 is 3 h
+            run_until(root,7)   # ready at 06:00, nobody decides; 07:00 is 1 h
             self.assertEqual(escalation.open_items(root),[])
-            cycle_service.tick(root)   # 10:00 — 4 h without a decision
-            items=escalation.open_items(root)
-            self.assertEqual([(i['subject'],i['kind'],i['owner_role']) for i in items],[(FIRST,'decision','ведущий технолог по добыче')])
-            cycle_service.tick(root)   # the same wait is not duplicated
-            self.assertEqual(len(escalation.open_items(root)),1)
+            cycle_service.tick(root)   # 08:00 — 2 h without a decision: field technologist
+            items=escalation.open_items(root,agent_hour=8)
+            self.assertEqual([(i['subject'],i['kind'],i['current_role']) for i in items],[(FIRST,'decision','ведущий технолог по добыче')])
+            cycle_service.tick(root);cycle_service.tick(root)   # 10:00 — 4 h: his head; the item is not duplicated
+            items=escalation.open_items(root,agent_hour=10)
+            self.assertEqual([(i['current_role'],i['overdue']) for i in items],[('начальник технологического отдела ЦДНГ',True)])

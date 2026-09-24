@@ -256,7 +256,7 @@ def render(root):
             'Ошибки':'; '.join(r.get('errors',[])+([r['tools']['limit_exceeded']] if r.get('tools',{}).get('limit_exceeded') else []))} for r in runs]),hide_index=True)
             st.caption('Лимиты такта — config/cycle_limits.json. Токены — оценка по длине запроса (символы / 4): Codex CLI не сообщает фактический расход.')
         else:st.caption('Запусков пока не было.')
-    items=escalation.open_items(root)
+    items=escalation.open_items(root,agent_hour=cycle_service.clock(root).get('hour'))
     with st.expander(f'Очередь эскалаций · открыто {len(items)}',expanded=bool(items)):
         if items:st.dataframe(pd.DataFrame([{'Что':i['subject'],'Причина':i['reason'],'Кому сейчас':i['current_role'],
             'Срок':i['deadline'].replace('T',' '),'Просрочено':'да' if i['overdue'] else 'нет','Час':f"{i['hour']:02d}:00",'Запуск':i['run_id']} for i in items]),hide_index=True)
