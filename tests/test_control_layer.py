@@ -29,7 +29,8 @@ class LimitTests(unittest.TestCase):
             run=run_until(root,6)
             self.assertEqual(run['incidents'][FIRST]['stage'],'awaiting_human_decision')
             tools=run['tools']
-            self.assertEqual((tools['llm_calls'],tools['gap_runs']),(2,3))
+            # 4 GAP runs: sets, sets with compulsory W50 correction, all-capacity check, pump wash.
+            self.assertEqual((tools['llm_calls'],tools['gap_runs']),(2,4))
             self.assertGreater(tools['llm_prompt_tokens_estimate'],0)
             self.assertIsNone(tools['limit_exceeded'])
             self.assertEqual(run['escalations'],[])

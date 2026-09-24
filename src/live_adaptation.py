@@ -89,9 +89,13 @@ def prepare_lifts(root,context,adaptation):
         if fit.get('stage')=='screened':
             assumptions.append(fit['well_id']+': '+fit['reason'])
             continue
-        compatible=[c for c in fit.get('candidates',[]) if c.get('pressure_compatible')]
+        if 'candidates' not in fit:
+            # The tool could not check this well; that is not evidence against its model.
+            assumptions.append(fit['well_id']+': проверка PROSPER невозможна — '+fit.get('reason','нет данных')+'. Модель скважины используется как есть; доверие определяется KPI')
+            continue
+        compatible=[c for c in fit['candidates'] if c.get('pressure_compatible')]
         if not compatible:
-            exclude(fit,fit.get('reason','нет согласованного с давлением варианта модели'))
+            exclude(fit,'ни один вариант модели не согласуется с замеренным давлением')
             continue
         if len(compatible)!=1:
             exclude(fit,'несколько вариантов модели согласованы с давлением, состояние скважины однозначно не определено')

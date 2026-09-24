@@ -5,7 +5,7 @@ import pandas as pd
 import streamlit as st
 import altair as alt
 from src import incident_view, incident_lifecycle, live_monitor, potential_register, live_reasoning, live_checks
-from src import autonomous_cycle, cycle_service, escalation, live_execution, license_retry, tool_gateway
+from src import autonomous_cycle, cycle_service, escalation, live_execution, license_retry, tool_gateway, well_trust, live_planning
 from src import measurement_overview
 from src.calculation_dependencies import fingerprints
 import importlib
@@ -171,6 +171,8 @@ def render(root):
                     st.caption('Суммы потенциала и стоимости взяты из реестра. Это не рассчитанный эффект, не точные режимы и не разрешение на исполнение.')
                 st.info(plan.get('reason','Необходимо уточнить данные'))
                 if plan.get('network_error'):st.error('GAP: '+plan['network_error'])
+                for item in plan.get('mandatory_wells',[]):
+                    st.info(item['well_id']+': '+item['reason']+' — скважина добавлена в каждый набор с регулированием в обе стороны.')
                 wash=plan.get('restoration_forecast')
                 if wash:
                     with st.expander('Прогноз промывки насоса',expanded=True):
@@ -270,6 +272,18 @@ def render(root):
         approvals=live_execution.approval_rows(root)
         if approvals:st.dataframe(pd.DataFrame(approvals),hide_index=True)
         else:st.caption('Утверждённых мероприятий пока нет.')
+    with st.expander('Ограничения расчёта и доверие к скважинам'):
+        limits=live_planning.constraints(root)
+        controls=json.loads((root/'config'/'gap_optimization_case.json').read_text(encoding='utf-8'))['controls']
+        st.write(f"Минимальное забойное давление: {limits['minimum_fbhp_bar']:g} бар (все работающие скважины сети).")
+        st.write(f"Лимит воды: текущая вода сепаратора + {limits['water_margin_m3d']:g} м³/сут.")
+        st.write(f"Частота ЭЦН: {controls['esp_absolute_min_hz']:g}–{controls['esp_absolute_max_hz']:g} Гц; скорость ШВН: {controls['pcp_absolute_min']:g}–{controls['pcp_absolute_max']:g}. Максимальное изменение по скважине — реестр возможностей.")
+        st.caption('Настраивается в config/network_constraints.json и config/gap_optimization_case.json; действует со следующего такта агента.')
+        if hour is not None:
+            trust=well_trust.compute(root,telemetry,hour)
+            if trust:
+                st.dataframe(well_trust.table(trust),hide_index=True)
+                st.caption('Доверие = KPI модели × KPI данных (config/well_trust.json). Низкое доверие — скважина не регулируется; в наборах в первую очередь выбираются скважины с высоким доверием.')
     with st.expander('Реестр возможностей'):
         st.dataframe(potential_register.table(root),hide_index=True)
         restoration=json.loads((root/'config'/'restoration_measures.json').read_text(encoding='utf-8'))

@@ -49,7 +49,7 @@ def _hypotheses(context):
 
 
 def _measure_sets(payload):
-    options=sorted(payload['opportunities'],key=lambda o:(-o['potential_oil_tpd'],o['well_id']))
+    options=sorted(payload['opportunities'],key=lambda o:(-o.get('trust',0),-o['potential_oil_tpd'],o['well_id']))
     required=payload['preliminary_need'].get('required_extra_oil_tpd',0)
     minimal=[];total=0.
     for item in options:
@@ -121,7 +121,7 @@ def _network(request):
             esp='ESP' in str(ref['well_type'])
             lowest=policy['esp_absolute_min_hz'] if esp else policy['pcp_absolute_min']
             highest=policy['esp_absolute_max_hz'] if esp else policy['pcp_absolute_max']
-            target=max(lowest,now-item['maximum_change']) if item['direction']=='decrease' else min(highest,now+item['maximum_change'])
+            target=max(lowest,now-item['maximum_change']) if item['direction'] in ('decrease','correct') else min(highest,now+item['maximum_change'])
             optimised_controls[wid]=target
             configured.append({'well_id':wid,'current':now,'minimum':min(now,target),'maximum':max(now,target)})
         optimised=_state(reference,optimised_controls,degraded)
@@ -141,6 +141,6 @@ def _network(request):
             model_measurement_residual_tpd=current['oil_sm3d']*.908-request['observed_oil_tpd'],
             model_measurement_water_residual_m3d=current['water_m3d']-request['maximum_water_m3d'],
             disabled_from_zero_frequency=disabled,water_limit_met=optimised['water_m3d']<=allowed_water,
-            minimum_fbhp_bar=minimum,missing_pressures=[],fbhp_limit_met=minimum is not None and minimum>=80,
+            minimum_fbhp_bar=minimum,missing_pressures=[],fbhp_limit_met=minimum is not None and minimum>=request.get('minimum_fbhp_bar',80.),
             approved_for_execution=False,imported_lift_tables=sorted(degraded)))
     return report

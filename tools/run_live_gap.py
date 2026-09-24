@@ -20,6 +20,7 @@ def main():
     parser.add_argument('--output',type=Path,required=True)
     args=parser.parse_args()
     request=json.loads(args.request.read_text(encoding='utf-8'))
+    minimum_fbhp=float(request.get('minimum_fbhp_bar',80.))
     if petex_apps.is_process_running('gap.exe'):
         raise RuntimeError('GAP уже открыт: расчёт не переключает чужую модель')
     model=ROOT/'runtime'/'petex_case'/'IM_2022_06'/'BEL_PROD.gap'
@@ -85,8 +86,8 @@ def main():
                     if wid in disabled:continue
                     if 'ESP' in str(well['well_type']) or 'PCP' in str(well['well_type']):
                         tag=f'{mod}.WELL[{{{wid}}}]'
-                        # 1 mbar inward numerical margin; acceptance remains strictly >=80.
-                        server.set_value(tag+'.MINPWF',80.001)
+                        # 1 mbar inward numerical margin; acceptance remains strictly >= the limit.
+                        server.set_value(tag+'.MINPWF',minimum_fbhp+.001)
                         server.set_value(tag+'.MINPWFBINDING',1)
                 configured=[]
                 for wid in alternative['selected_wells']:
@@ -99,8 +100,12 @@ def main():
                     is_esp='ESP' in str(labels[wid]['well_type'])
                     if not is_esp and 'PCP' not in str(labels[wid]['well_type']):raise ValueError('Неподдерживаемый контроль '+wid)
                     policy=request['control_policy']
-                    if item['direction']=='decrease':
-                        low=max(policy['esp_absolute_min_hz'] if is_esp else policy['pcp_absolute_min'],current_control-delta); high=current_control
+                    lowest=policy['esp_absolute_min_hz'] if is_esp else policy['pcp_absolute_min']
+                    highest=policy['esp_absolute_max_hz'] if is_esp else policy['pcp_absolute_max']
+                    if item['direction']=='correct':
+                        low=max(lowest,current_control-delta); high=min(highest,current_control+delta)
+                    elif item['direction']=='decrease':
+                        low=max(lowest,current_control-delta); high=current_control
                     else:
                         low=current_control; high=min(policy['esp_absolute_max_hz'] if is_esp else policy['pcp_absolute_max'],current_control+delta)
                     if high<low:raise ValueError('Текущий контроль вне допустимого диапазона '+wid)
@@ -129,7 +134,7 @@ def main():
                     'disabled_from_zero_frequency':disabled,
                     'water_limit_met':float(optimum['water_m3d'])<=request['maximum_water_m3d']+.01,
                     'minimum_fbhp_bar':minimum_pressure,'missing_pressures':missing_pressure,
-                    'fbhp_limit_met':not missing_pressure and minimum_pressure is not None and minimum_pressure>=80,
+                    'fbhp_limit_met':not missing_pressure and minimum_pressure is not None and minimum_pressure>=minimum_fbhp,
                     'approved_for_execution':False,
                     'imported_lift_tables':imported,
                     'model_measurement_water_residual_m3d':float(current['water_m3d'])-request['maximum_water_m3d'],

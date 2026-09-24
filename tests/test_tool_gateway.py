@@ -58,15 +58,13 @@ class StubCycleTests(unittest.TestCase):
             self.assertEqual(self.run_hour(root,11)[FIRST]['stage'],'needs_data')
             codex.assert_not_called()
 
-    def test_well_without_complete_conditions_is_left_untouched(self):
+    def test_well_that_cannot_be_checked_keeps_its_model_as_is(self):
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory, patch.dict(os.environ,{'AGENT_TOOL_BACKEND':'stub'}):
             root=make_project(directory,conditions=False)
             state=self.run_hour(root,6)[FIRST]
-            excluded=[w['well_id'] for w in state['model_state']['excluded_wells']]
-            self.assertIn('W_BEL_27_TLBB',excluded)
+            self.assertEqual(state['model_state']['excluded_wells'],[])
             self.assertEqual(state['model_state']['lift_tables'],[])
-            for alternative in state['plan']['proposal']['alternatives']:
-                self.assertFalse(set(excluded)&set(alternative['selected_wells']))
+            self.assertTrue(any(a.startswith('W_BEL_27_TLBB: проверка PROSPER невозможна') for a in state['model_state']['assumptions']))
 
 
 if __name__=='__main__':

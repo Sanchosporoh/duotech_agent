@@ -52,7 +52,7 @@ class CycleLevelTests(unittest.TestCase):
             root=make_project(directory)
             for _ in range(7):first=cycle_service.tick(root)
             later=cycle_service.tick(root)  # 07:00, nothing new
-            self.assertEqual((first['tools']['llm_calls'],first['tools']['gap_runs']),(2,3))
+            self.assertEqual((first['tools']['llm_calls'],first['tools']['gap_runs']),(2,4))
             self.assertEqual((later['tools']['llm_calls'],later['tools']['gap_runs'],later['tools']['prosper_runs']),(0,0,0))
             self.assertEqual(later['incidents'][FIRST]['stage'],'awaiting_human_decision')
 

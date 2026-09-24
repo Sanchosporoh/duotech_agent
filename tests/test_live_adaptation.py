@@ -21,10 +21,12 @@ class AdaptationTests(unittest.TestCase):
                     result=run(root,context,'stale',{'hypotheses':[{'candidate_wells':['A']}]})
                     self.assertEqual(result[0]['stage'],'needs_data')
                     state=prepare_lifts(root,context,result)
-                    # Unreliable well is left untouched; the plan for other wells is not blocked.
+                    # A stale signal is not evidence against the model: no lift table, no exclusion;
+                    # the age of the data lowers the well trust instead (src/well_trust.py).
                     self.assertTrue(state['ready'])
                     self.assertEqual(state['lift_tables'],[])
-                    self.assertEqual([w['well_id'] for w in state['excluded_wells']],[result[0]['well_id']])
+                    self.assertEqual(state['excluded_wells'],[])
+                    self.assertTrue(any('проверка PROSPER невозможна' in a for a in state['assumptions']))
                 worker.assert_not_called()
 
     def test_partial_diagnostic_result_does_not_override_failed_attempt(self):
