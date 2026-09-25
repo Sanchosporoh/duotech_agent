@@ -25,7 +25,13 @@ def _payload(prompt):
 
 def codex(prompt,schema):
     if 'hypotheses' in schema['properties']:return _hypotheses(_payload(prompt))
-    if 'alternatives' in schema['properties']:return _measure_sets(_payload(prompt))
+    if 'alternatives' in schema['properties']:
+        payload=_payload(prompt)
+        tools=schema['properties'].get('tool',{}).get('enum',['calculate_sets'])
+        if 'screen_single_wells' in tools and 'screen' not in payload:
+            return {'assessment':'Заглушка Codex: сначала скрининг одиночных скважин.','tool':'screen_single_wells',
+                    'tool_reason':'Проверить, закрывает ли недобор одна скважина','alternatives':[]}
+        return dict(_measure_sets(payload),tool='calculate_sets',tool_reason='Заглушка Codex: наборы из реестра')
     raise ValueError('Заглушка Codex не знает эту схему ответа')
 
 

@@ -182,6 +182,16 @@ def render(root):
                 else: st.warning(need.get('reason','Недостаточно данных'))
                 if 'proposal' in plan:
                     st.markdown('#### 6. Наборы мероприятий — сценарии для GAP')
+                    names={'screen_single_wells':'скрининг одиночных скважин в GAP (матрица влияния)','calculate_sets':'полный расчёт наборов в GAP'}
+                    for step in plan.get('tool_trace',[]):
+                        text=f"Шаг {step['step']}: {names.get(step['tool'],step['tool'])}"
+                        if step.get('reason'):text+=' — выбор агента: '+russian_text(step['reason'])
+                        if step.get('result'):text+=' — итог: '+step['result']
+                        st.caption(text)
+                    for step in plan.get('tool_trace',[]):
+                        if step.get('wells'):
+                            with st.expander('Скрининг одиночных скважин: максимальный прирост каждой скважины в одиночку'):
+                                st.dataframe(pd.DataFrame([{'Скважина':w['well_id'],'Прирост GAP, т/сут':w['gain_oil_tpd'],'Ограничения':'соблюдены' if w['constraints_met'] else 'нарушены','Закрывает потребность':'да' if w['covers_need'] else 'нет'} for w in step['wells']]),hide_index=True)
                     st.write(russian_text(plan['proposal']['assessment']))
                     readable_table([{'Набор':a['title'],'Почему выбран':a['rationale'],'Скважины':a['selected_wells'],
                                      'Что ещё проверить':a['unresolved_constraints'],

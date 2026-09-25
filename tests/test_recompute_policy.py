@@ -52,7 +52,7 @@ class CycleLevelTests(unittest.TestCase):
             root=make_project(directory)
             for _ in range(7):first=cycle_service.tick(root)
             later=cycle_service.tick(root)  # 07:00, nothing new
-            self.assertEqual((first['tools']['llm_calls'],first['tools']['gap_runs']),(2,4))
+            self.assertEqual((first['tools']['llm_calls'],first['tools']['gap_runs']),(3,5))
             self.assertEqual((later['tools']['llm_calls'],later['tools']['gap_runs'],later['tools']['prosper_runs']),(0,0,0))
             self.assertEqual(later['incidents'][FIRST]['stage'],'awaiting_human_decision')
 
@@ -73,7 +73,7 @@ class CycleLevelTests(unittest.TestCase):
             selected=(telemetry.well_id=='W_BEL_27_TLBB')&(telemetry.hour==7)
             telemetry.loc[selected,'sensor_pressure_bar']+=3.;telemetry.to_csv(path,index=False)
             for _ in range(8):run=cycle_service.tick(root)
-            self.assertEqual(run['tools']['llm_calls'],2)
+            self.assertEqual(run['tools']['llm_calls'],3)   # diagnosis, tool choice, sets
 
 
 if __name__=='__main__':
