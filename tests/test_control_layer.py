@@ -36,6 +36,19 @@ class LimitTests(unittest.TestCase):
             self.assertIsNone(tools['limit_exceeded'])
             self.assertEqual(run['escalations'],[])
 
+    def test_llm_model_and_actual_cost_are_journaled(self):
+        from src import tool_gateway, llm_client
+        with tempfile.TemporaryDirectory() as directory:
+            root=make_project(directory)
+            meta={'model':'openai/gpt-4.1','seconds':1.0,'prompt_tokens':1000,'completion_tokens':50,'cost_usd':0.0024}
+            with patch.dict(os.environ,{'AGENT_TOOL_BACKEND':'petex','AGENT_LLM':'openrouter:openai/gpt-4.1'}),                  patch.object(llm_client,'ask',return_value=({'ok':True},meta)), patch.object(llm_client,'api_key',return_value='k'):
+                tool_gateway.start_tick(root)
+                tool_gateway.ask_codex(root,'x',{},directory)
+                tools=tool_gateway.finish_tick()
+        self.assertEqual(tools['llm_models'],['openai/gpt-4.1'])
+        self.assertEqual(tools['llm_tokens_reported'],{'prompt':1000,'completion':50})
+        self.assertEqual(tools['llm_cost_usd'],0.0024)
+
     def test_exceeded_llm_limit_stops_and_escalates(self):
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory, patch.dict(os.environ,{'AGENT_TOOL_BACKEND':'stub'}):
             root=make_project(directory)

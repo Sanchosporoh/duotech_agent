@@ -264,11 +264,12 @@ def render(root):
         if runs:
             st.dataframe(pd.DataFrame([{'Запуск':r['run_id'],'Час':f"{r['hour']:02d}:00",'Итог':r['status'],'Длительность, с':r.get('duration_seconds'),
             'LLM':r.get('tools',{}).get('llm_calls'),'GAP':r.get('tools',{}).get('gap_runs'),'PROSPER':r.get('tools',{}).get('prosper_runs'),
-            'Токены запроса (оценка)':r.get('tools',{}).get('llm_prompt_tokens_estimate'),
+            'Модель LLM':', '.join(r.get('tools',{}).get('llm_models') or []) or None,
+            'Токены запрос / ответ':(lambda t,rep:f"{rep['prompt']} / {rep['completion']}" if rep else (f"≈{t['llm_prompt_tokens_estimate']} / —" if t.get('llm_prompt_tokens_estimate') else None))(r.get('tools',{}),r.get('tools',{}).get('llm_tokens_reported')),
             'Стоимость LLM, $':r.get('tools',{}).get('llm_cost_usd'),
             'Инциденты':'; '.join(f"{k}: {v['stage']}"+(f" ({v['recompute']})" if v.get('recompute') else '') for k,v in r.get('incidents',{}).items()),
             'Ошибки':'; '.join(r.get('errors',[])+([r['tools']['limit_exceeded']] if r.get('tools',{}).get('limit_exceeded') else []))} for r in runs]),hide_index=True)
-            st.caption('Лимиты такта — config/cycle_limits.json. Токены — оценка по длине запроса (символы / 4): Codex CLI не сообщает фактический расход.')
+            st.caption('Лимиты такта и суток — config/cycle_limits.json. Токены и стоимость — фактические по ответу OpenRouter / LM Studio; для Codex CLI — оценка запроса (символы / 4, знак ≈), стоимость не сообщается.')
         else:st.caption('Запусков пока не было.')
     items=escalation.open_items(root,agent_hour=cycle_service.clock(root).get('hour'))
     with st.expander(f'Очередь эскалаций · открыто {len(items)}',expanded=bool(items)):

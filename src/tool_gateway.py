@@ -59,6 +59,7 @@ def finish_tick():
     reported=[c for c in tick['calls'] if c.get('prompt_tokens') is not None]
     return {'llm_calls':tick['llm_calls'],'gap_runs':tick['gap_runs'],'prosper_runs':tick['prosper_runs'],
             'llm_tokens_reported':{'prompt':sum(c['prompt_tokens'] or 0 for c in reported),'completion':sum(c['completion_tokens'] or 0 for c in reported)} if reported else None,
+            'llm_models':sorted({c['model'] for c in tick['calls'] if c.get('model')}),
             'llm_cost_usd':round(sum(c.get('cost_usd') or 0 for c in reported),6) if reported else None,
             'llm_prompt_tokens_estimate':tokens,'llm_cost_rub':None if price is None else round(tokens/1000*price,2),
             'tool_seconds':seconds,'failed_calls':[c for c in tick['calls'] if not c['ok']],
@@ -138,7 +139,7 @@ def ask_codex(root,prompt,schema,cwd):
             name,model,url=llm_client.provider()
             if name=='codex':
                 from src.codex_cli import ask_codex as real
-                answer=real(prompt,schema,cwd);meta={}
+                answer=real(prompt,schema,cwd);meta={'model':'Codex CLI'}
             else:
                 answer,meta=llm_client.ask(prompt,schema,model,url,llm_client.api_key() if name=='openrouter' else None)
     except Exception:
