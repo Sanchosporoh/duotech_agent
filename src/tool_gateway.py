@@ -56,7 +56,10 @@ def finish_tick():
     price=tick['limits'].get('llm_price_per_1k_tokens_rub')
     seconds={}
     for call in tick['calls']:seconds[call['tool']]=round(seconds.get(call['tool'],0)+call['seconds'],3)
+    reported=[c for c in tick['calls'] if c.get('prompt_tokens') is not None]
     return {'llm_calls':tick['llm_calls'],'gap_runs':tick['gap_runs'],'prosper_runs':tick['prosper_runs'],
+            'llm_tokens_reported':{'prompt':sum(c['prompt_tokens'] or 0 for c in reported),'completion':sum(c['completion_tokens'] or 0 for c in reported)} if reported else None,
+            'llm_cost_usd':round(sum(c.get('cost_usd') or 0 for c in reported),6) if reported else None,
             'llm_prompt_tokens_estimate':tokens,'llm_cost_rub':None if price is None else round(tokens/1000*price,2),
             'tool_seconds':seconds,'failed_calls':[c for c in tick['calls'] if not c['ok']],
             'limit_exceeded':tick.get('limit_exceeded')}
@@ -94,8 +97,12 @@ def backend():
 
 
 def cache_marker():
-    """Extra fingerprint fields: stub and real results never share a cache entry."""
-    return {'tool_backend':'stub'} if backend()=='stub' else {}
+    """Extra fingerprint fields: stub/real results and different LLMs never share a cache entry."""
+    marker={'tool_backend':'stub'} if backend()=='stub' else {}
+    from src import llm_client
+    name,model,_=llm_client.provider()
+    if name!='codex':marker['llm']=f'{name}:{model}'
+    return marker
 
 
 def guard(root):
@@ -115,11 +122,16 @@ def ask_codex(root,prompt,schema,cwd):
             _stub_delay()
             answer=tool_stubs.codex(prompt,schema)
         else:
-            from src.codex_cli import ask_codex as real
-            answer=real(prompt,schema,cwd)
+            from src import llm_client
+            name,model,url=llm_client.provider()
+            if name=='codex':
+                from src.codex_cli import ask_codex as real
+                answer=real(prompt,schema,cwd);meta={}
+            else:
+                answer,meta=llm_client.ask(prompt,schema,model,url,llm_client.api_key() if name=='openrouter' else None)
     except Exception:
         _record('llm',started,False,prompt_chars=len(prompt));raise
-    _record('llm',started,True,prompt_chars=len(prompt))
+    _record('llm',started,True,prompt_chars=len(prompt),**{k:v for k,v in (meta if backend()!='stub' else {}).items() if k!='seconds'})
     return answer
 
 

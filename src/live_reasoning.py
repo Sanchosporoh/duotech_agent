@@ -44,11 +44,9 @@ def snapshot(separator, telemetry, hour, incident, comment='', version=1, depend
     return context,hashlib.sha256(encoded.encode('utf-8')).hexdigest()
 
 
-def generate(root, context, fingerprint):
-    from src import well_trust
-    telemetry=pd.DataFrame(context['telemetry'])
-    trust=well_trust.compute(root,telemetry,context['hour']) if root is not None and not telemetry.empty else {}
-    prompt=('Ты помощник инженера по интегрированному моделированию. Используй только наблюдения ниже. '
+def hypothesis_prompt(context, trust):
+    """The same instruction is used by the agent and by the model comparison (tools/compare_llm.py)."""
+    return ('Ты помощник инженера по интегрированному моделированию. Используй только наблюдения ниже. '
             'Сформируй конкурирующие гипотезы, конкретные проверки и недостающие данные. '
             'Не объявляй причину подтверждённой и не придумывай результаты модели или замеры. '
             'Потеря сепаратора сама по себе не локализует скважину. Учитывай возраст сигналов, '
@@ -58,6 +56,13 @@ def generate(root, context, fingerprint):
             'Учитывай доверие к скважинам well_trust (KPI модели × актуальность данных): чем оно ниже, тем слабее выводы по скважине. '
             'Не используй инструменты. Верни JSON по схеме. Доверие к скважинам: '+json.dumps(trust,ensure_ascii=False)
             +'\nНаблюдения:\n'+json.dumps(context,ensure_ascii=False))
+
+
+def generate(root, context, fingerprint):
+    from src import well_trust, llm_client
+    telemetry=pd.DataFrame(context['telemetry'])
+    trust=well_trust.compute(root,telemetry,context['hour']) if root is not None and not telemetry.empty else {}
+    prompt=hypothesis_prompt(context,trust)
     # A separate empty directory keeps model files and future generator data out of CLI cwd.
     with tempfile.TemporaryDirectory(prefix='production_reasoning_') as folder:
         answer=tool_gateway.ask_codex(root,prompt,SCHEMA,Path(folder))
@@ -66,7 +71,8 @@ def generate(root, context, fingerprint):
         unknown=set(item['candidate_wells'])-allowed
         if unknown:
             raise ValueError(f'Codex указал неизвестные скважины: {sorted(unknown)}')
-    return {'fingerprint':fingerprint,'context':context,'answer':answer,'generator':'Codex CLI'}
+    name,model,_=llm_client.provider()
+    return {'fingerprint':fingerprint,'context':context,'answer':answer,'generator':'Codex CLI' if name=='codex' else f'{name}:{model}'}
 
 
 def save(path, result):
