@@ -1,7 +1,8 @@
 {
   "scenario": "Возврат предложения с новым комментарием каждый час (полный пересчёт каждый такт)",
   "limits": {
-    "max_llm_calls": 5,
+    "llm_calls_per_incident": 1,
+    "llm_calls_per_plan": 2,
     "max_llm_calls_per_day": 20,
     "max_gap_runs": 5,
     "max_gap_runs_per_day": 30

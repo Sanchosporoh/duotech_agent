@@ -39,7 +39,7 @@ class LimitTests(unittest.TestCase):
     def test_exceeded_llm_limit_stops_and_escalates(self):
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory, patch.dict(os.environ,{'AGENT_TOOL_BACKEND':'stub'}):
             root=make_project(directory)
-            set_limits(root,max_llm_calls=1)
+            set_limits(root,llm_calls_per_incident=0,llm_calls_per_plan=1)
             run=run_until(root,6)
             self.assertEqual(run['incidents'][FIRST]['stage'],'needs_attention')
             self.assertIn('Превышен лимит такта',run['tools']['limit_exceeded'])
@@ -133,3 +133,55 @@ class DecisionWaitTests(unittest.TestCase):
             self.assertIn('суточный бюджет',run['tools']['limit_exceeded'])
             self.assertEqual(run['incidents'][FIRST]['stage'],'needs_attention')
 
+
+class FormulaAndGapTests(unittest.TestCase):
+    def test_llm_limit_grows_with_open_incidents(self):
+        from src import tool_gateway
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
+            root=make_project(directory)
+            tool_gateway.start_tick(root)
+            try:
+                tool_gateway.set_open_incidents(1)
+                self.assertEqual(tool_gateway.tick_limit('llm_calls'),3)
+                tool_gateway.set_open_incidents(3)
+                self.assertEqual(tool_gateway.tick_limit('llm_calls'),5)
+            finally:
+                tool_gateway.finish_tick()
+
+    def test_no_admissible_gap_variant_is_escalated_to_the_modelling_engineer(self):
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory, patch.dict(os.environ,{'AGENT_TOOL_BACKEND':'stub'}):
+            root=make_project(directory)
+            path=root/'config/network_constraints.json'
+            limits=json.loads(path.read_text(encoding='utf-8'));limits['minimum_fbhp_bar']=200.   # impossible for every variant
+            path.write_text(json.dumps(limits),encoding='utf-8')
+            run=run_until(root,6)
+            self.assertEqual(run['incidents'][FIRST]['stage'],'conditional_network_calculated')
+            items=escalation.open_items(root)
+            self.assertEqual(len(items),1)
+            self.assertIn('GAP: нет допустимого варианта',items[0]['reason'])
+            self.assertIn('Pзаб',items[0]['reason'])
+            self.assertEqual(items[0]['owner_role'],'инженер-моделист')
+
+
+
+class GapLicenseTests(unittest.TestCase):
+    def test_license_failure_waits_and_reuses_measure_sets_without_new_llm_calls(self):
+        import subprocess
+        from src import tool_gateway, license_retry
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory, patch.dict(os.environ,{'AGENT_TOOL_BACKEND':'stub'}):
+            root=make_project(directory)
+            real=tool_gateway.run_worker
+            def no_license(root_,script,request,output):
+                if script=='run_live_gap':
+                    return subprocess.CompletedProcess([script],1,'','No OpenServer license available')
+                return real(root_,script,request,output)
+            with patch('src.live_planning.tool_gateway.run_worker',side_effect=no_license):
+                run=run_until(root,6)
+            self.assertEqual(run['incidents'][FIRST]['stage'],'waiting_license')
+            self.assertEqual(escalation.open_items(root),[])
+            # License is back and the retry time has passed: GAP only, the LLM is not asked again.
+            license_retry.success(root)
+            later=cycle_service.tick(root)
+            self.assertEqual(later['tools']['llm_calls'],0)
+            self.assertGreater(later['tools']['gap_runs'],0)
+            self.assertEqual(later['incidents'][FIRST]['stage'],'awaiting_human_decision')

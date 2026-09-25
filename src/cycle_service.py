@@ -76,6 +76,7 @@ def process_hour(root,hour):
         else:
             incidents=incident_view.opened_incidents(separator,hour)
             active=_active(root,incidents)
+            tool_gateway.set_open_incidents(len(active))
             if incidents.empty:
                 run.update(status='no_incidents')
             elif limits.get('max_open_incidents') is not None and len(active)>limits['max_open_incidents']:
@@ -83,7 +84,8 @@ def process_hour(root,hour):
             else:
                 try:
                     states=autonomous_cycle.run(root,separator,telemetry,hour,incidents)
-                    run['incidents']={name:{'stage':s.get('stage'),'recompute':s.get('recompute',{}).get('level'),'reason':s.get('reason') or s.get('error') or s.get('plan',{}).get('reason')}
+                    run['incidents']={name:{'stage':s.get('stage'),'recompute':s.get('recompute',{}).get('level'),'reason':s.get('reason') or s.get('error') or s.get('plan',{}).get('reason'),
+                                            'network':_network_summary(s)}
                                       for name,s in states.items()}
                     run['status']='processed'
                 except Exception as exc:  # the journal must record any crash of the cycle
@@ -96,6 +98,21 @@ def process_hour(root,hour):
     run['escalations']=[item['id'] for item in _escalate(root,run)]
     save(folder(root)/'runs'/f"{run['run_id']}.json",run)
     return run
+
+
+def _network_summary(state):
+    """Why GAP gave no admissible variant: per variant — not converged, water, FBHP."""
+    plan=state.get('plan',{})
+    rows=[]
+    for source in (plan,plan.get('capacity_check',{})):
+        for a in source.get('network',{}).get('alternatives',[]):
+            problems=[]
+            if a.get('status')=='solver_not_converged':problems.append('GAP не сошёлся')
+            else:
+                if not a.get('water_limit_met'):problems.append('вода')
+                if not a.get('fbhp_limit_met'):problems.append('Pзаб')
+            rows.append({'title':a.get('title'),'problems':problems})
+    return rows
 
 
 def _limits(root):
@@ -117,6 +134,11 @@ def _escalate(root,run):
     for name,state in run['incidents'].items():
         if state['stage']=='needs_attention':
             items.append(escalation.raise_item(root,name,state.get('reason') or 'Расчёт остановлен',run['run_id'],run['hour']))
+        elif state['stage']=='conditional_network_calculated' and state.get('network'):
+            # GAP ran but no variant is admissible, including the all-capacity fallback: a model or constraint issue.
+            problems=sorted({p for row in state['network'] for p in row['problems']})
+            items.append(escalation.raise_item(root,name,'GAP: нет допустимого варианта, включая запасной расчёт всей регулирующей способности ('
+                                               +', '.join(problems or ['цель не достигнута'])+'). Нужна проверка модели или ограничений',run['run_id'],run['hour']))
     items+=_decision_waits(root,run)
     return items
 

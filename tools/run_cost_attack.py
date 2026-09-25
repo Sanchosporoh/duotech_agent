@@ -37,7 +37,7 @@ def main():
                 incident_lifecycle.record_decision(root/'data/live/lifecycle.json',FIRST,'На доработке',
                     f"Пересчитать с ограничением №{run['hour']}",None,'cost attack')
         result={'scenario':'Возврат предложения с новым комментарием каждый час (полный пересчёт каждый такт)',
-                'limits':{k:limits[k] for k in ('max_llm_calls','max_llm_calls_per_day','max_gap_runs','max_gap_runs_per_day')},
+                'limits':{k:limits[k] for k in ('llm_calls_per_incident','llm_calls_per_plan','max_llm_calls_per_day','max_gap_runs','max_gap_runs_per_day')},
                 'stopped':stopped,'llm_calls_total':total,'hours':hours,
                 'escalations':[{k:i[k] for k in ('subject','reason','owner_role','hour')} for i in escalation.open_items(root)]}
     out=REPO/'course/cost_attack.json'

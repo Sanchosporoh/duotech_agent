@@ -65,9 +65,21 @@ def finish_tick():
             'limit_exceeded':tick.get('limit_exceeded')}
 
 
+def set_open_incidents(count):
+    """The LLM limit of a tick depends on how many incidents are diagnosed in it."""
+    if _tick is not None:_tick['open_incidents']=count
+
+
+def tick_limit(kind):
+    limits=_tick['limits']
+    if kind=='llm_calls' and 'llm_calls_per_incident' in limits:
+        return limits['llm_calls_per_incident']*_tick.get('open_incidents',1)+limits['llm_calls_per_plan']
+    return limits.get('max_'+kind)
+
+
 def _count(kind):
     if _tick is None:return
-    limit=_tick['limits'].get('max_'+kind)
+    limit=tick_limit(kind)
     if limit is not None and _tick[kind]>=limit:
         message=f'Превышен лимит такта: {LIMIT_LABEL[kind]} — не более {limit}. Цикл остановлен и передан инженеру.'
         _tick['limit_exceeded']=message
