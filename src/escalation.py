@@ -60,8 +60,13 @@ def open_items(root,now=None,agent_hour=None):
     for item in items:
         # After the owner's deadline the same item is shown to the backup role.
         if 'deadline_hour' in item:
+            # Decision wait: raised after the owner's time; the backup role takes over at its deadline.
             item['overdue']=agent_hour is not None and agent_hour>=item['deadline_hour']
+            handed_over=item['overdue']
         else:
+            # Agent failure: the owner has the item at once; overdue after his deadline,
+            # handed to the backup role only after the backup deadline.
             item['overdue']=now>datetime.fromisoformat(item['deadline'])
-        item['current_role']=item['backup_role'] if item['overdue'] else item['owner_role']
+            handed_over=bool(item.get('backup_deadline')) and now>datetime.fromisoformat(item['backup_deadline'])
+        item['current_role']=item['backup_role'] if handed_over else item['owner_role']
     return items

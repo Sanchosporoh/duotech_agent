@@ -77,8 +77,9 @@ class EscalationQueueTests(unittest.TestCase):
             self.assertEqual(first['id'],again['id'])
             self.assertEqual(first['deadline'],'2026-09-24T11:00')
             late=escalation.open_items(root,now=start+timedelta(hours=3))[0]
-            self.assertTrue(late['overdue'])
-            self.assertEqual(late['current_role'],'руководитель группы моделирования и оптимизации')
+            self.assertEqual((late['overdue'],late['current_role']),(True,'инженер-моделист'))   # 3 h: overdue, still the owner
+            later=escalation.open_items(root,now=start+timedelta(hours=5))[0]
+            self.assertEqual(later['current_role'],'руководитель группы моделирования и оптимизации')   # after 4 h
             escalation.close(root,first['id'],'перезапущен и прошёл')
             self.assertEqual(escalation.open_items(root),[])
 
@@ -104,10 +105,10 @@ class DecisionWaitTests(unittest.TestCase):
             self.assertEqual(escalation.open_items(root),[])
             cycle_service.tick(root)   # 08:00 — 2 h without a decision: field technologist
             items=escalation.open_items(root,agent_hour=8)
-            self.assertEqual([(i['subject'],i['kind'],i['current_role']) for i in items],[(FIRST,'decision','ведущий технолог по добыче')])
+            self.assertEqual([(i['subject'],i['kind'],i['current_role']) for i in items],[(FIRST,'decision','инженер-моделист')])
             cycle_service.tick(root);cycle_service.tick(root)   # 10:00 — 4 h: his head; the item is not duplicated
             items=escalation.open_items(root,agent_hour=10)
-            self.assertEqual([(i['current_role'],i['overdue']) for i in items],[('начальник технологического отдела ЦДНГ',True)])
+            self.assertEqual([(i['current_role'],i['overdue']) for i in items],[('руководитель группы моделирования и оптимизации',True)])
 
     def test_return_with_comment_restarts_the_decision_wait(self):
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory, patch.dict(os.environ,{'AGENT_TOOL_BACKEND':'stub'}):
