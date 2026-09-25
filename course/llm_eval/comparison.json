@@ -1,0 +1,522 @@
+[
+ {
+  "model": "codex (эталон, настоящий прогон)",
+  "task": "гипотезы",
+  "case": "hyp-06",
+  "error": null,
+  "valid": true,
+  "count": 5,
+  "unknown_wells": [],
+  "key_well_first": true,
+  "key_well_any": true,
+  "first": "Снижение эффективности ЭЦН W_BEL_27_TLBB"
+ },
+ {
+  "model": "codex (эталон, настоящий прогон)",
+  "task": "гипотезы",
+  "case": "hyp-15",
+  "error": null,
+  "valid": true,
+  "count": 6,
+  "unknown_wells": [],
+  "key_well_first": true,
+  "key_well_any": true,
+  "first": "Остановка или потеря привода W_BEL_22_TLBB"
+ },
+ {
+  "model": "codex (эталон, настоящий прогон)",
+  "task": "гипотезы",
+  "case": "hyp-18",
+  "error": null,
+  "valid": true,
+  "count": 5,
+  "unknown_wells": [],
+  "key_well_first": true,
+  "key_well_any": true,
+  "first": "Остановка или потеря подачи W_BEL_22_TLBB"
+ },
+ {
+  "model": "codex (эталон, настоящий прогон)",
+  "task": "наборы",
+  "case": "sets-06",
+  "error": null,
+  "valid": true,
+  "sets": 3,
+  "outside_register": [],
+  "best_register_coverage": 1.3,
+  "wells": [
+   [
+    "W_BEL_13_TLBB",
+    "W_BEL_12_TLBB",
+    "W_BEL_23_TLBB",
+    "W_BEL_29_TLBB",
+    "W_BEL_31_TLBB"
+   ],
+   [
+    "W_BEL_12_TLBB",
+    "W_BEL_23_TLBB",
+    "W_BEL_29_TLBB",
+    "W_BEL_30_TLBB",
+    "W_BEL_31_TLBB",
+    "W_BEL_14_TLBB",
+    "W_BEL_24_TLBB",
+    "W_BEL_55_TLBB"
+   ],
+   [
+    "W_BEL_13_TLBB",
+    "W_BEL_12_TLBB",
+    "W_BEL_23_TLBB",
+    "W_BEL_30_TLBB",
+    "W_BEL_31_TLBB",
+    "W_BEL_24_TLBB"
+   ]
+  ]
+ },
+ {
+  "model": "codex (эталон, настоящий прогон)",
+  "task": "наборы",
+  "case": "sets-15",
+  "error": null,
+  "valid": true,
+  "sets": 3,
+  "outside_register": [],
+  "best_register_coverage": 0.86,
+  "wells": [
+   [
+    "W_BEL_13_TLBB"
+   ],
+   [
+    "W_BEL_12_TLBB",
+    "W_BEL_13_TLBB",
+    "W_BEL_23_TLBB",
+    "W_BEL_29_TLBB",
+    "W_BEL_30_TLBB",
+    "W_BEL_31_TLBB",
+    "W_BEL_14_TLBB",
+    "W_BEL_24_TLBB",
+    "W_BEL_55_TLBB"
+   ],
+   [
+    "W_BEL_12_TLBB",
+    "W_BEL_13_TLBB",
+    "W_BEL_23_TLBB",
+    "W_BEL_30_TLBB",
+    "W_BEL_31_TLBB"
+   ]
+  ]
+ },
+ {
+  "model": "codex (эталон, настоящий прогон)",
+  "task": "наборы",
+  "case": "sets-18",
+  "error": null,
+  "valid": true,
+  "sets": 3,
+  "outside_register": [],
+  "best_register_coverage": 0.26,
+  "wells": [
+   [
+    "W_BEL_13_TLBB"
+   ],
+   [
+    "W_BEL_12_TLBB",
+    "W_BEL_30_TLBB",
+    "W_BEL_31_TLBB",
+    "W_BEL_24_TLBB",
+    "W_BEL_55_TLBB"
+   ],
+   [
+    "W_BEL_13_TLBB",
+    "W_BEL_12_TLBB",
+    "W_BEL_31_TLBB"
+   ]
+  ]
+ },
+ {
+  "task": "гипотезы",
+  "case": "hyp-06",
+  "model": "openai/gpt-4o-mini",
+  "seconds": 14.53,
+  "prompt_tokens": 9293,
+  "completion_tokens": 1014,
+  "cost_usd": 0.00200235,
+  "error": null,
+  "valid": true,
+  "count": 5,
+  "unknown_wells": [],
+  "key_well_first": true,
+  "key_well_any": true,
+  "first": "Проблемы с насосом в скважине W_BEL_27_TLBB"
+ },
+ {
+  "task": "гипотезы",
+  "case": "hyp-15",
+  "model": "openai/gpt-4o-mini",
+  "seconds": 8.33,
+  "prompt_tokens": 17103,
+  "completion_tokens": 774,
+  "cost_usd": 0.00302985,
+  "error": null,
+  "valid": true,
+  "count": 6,
+  "unknown_wells": [],
+  "key_well_first": false,
+  "key_well_any": true,
+  "first": "Проблемы с насосом в скважине W_BEL_27_TLBB"
+ },
+ {
+  "task": "гипотезы",
+  "case": "hyp-18",
+  "model": "openai/gpt-4o-mini",
+  "seconds": 16.87,
+  "prompt_tokens": 19835,
+  "completion_tokens": 1322,
+  "cost_usd": 0.00369165,
+  "error": null,
+  "valid": true,
+  "count": 5,
+  "unknown_wells": [],
+  "key_well_first": true,
+  "key_well_any": true,
+  "first": "Проблемы с насосом (ESP)"
+ },
+ {
+  "task": "выбор инструмента",
+  "case": "sets-06",
+  "model": "openai/gpt-4o-mini",
+  "seconds": 4.1,
+  "prompt_tokens": 14127,
+  "completion_tokens": 200,
+  "cost_usd": 0.00223905,
+  "error": null,
+  "valid": true,
+  "tool": "screen_single_wells",
+  "tool_reason": "Выбор инструмента screen_single_wells обусловлен тем, что есть вероятность, что одна скважина может покрыть недобор. Это более экономичный вариант, чем использование calculate_sets, который предполагает более сложные расчёты с несколькими скважинами."
+ },
+ {
+  "task": "наборы",
+  "case": "sets-06",
+  "model": "openai/gpt-4o-mini",
+  "seconds": 7.14,
+  "prompt_tokens": 14099,
+  "completion_tokens": 459,
+  "cost_usd": 0.00134385,
+  "error": null,
+  "valid": true,
+  "sets": 3,
+  "outside_register": [],
+  "best_register_coverage": 0.71,
+  "wells": [
+   [
+    "W_BEL_13_TLBB",
+    "W_BEL_12_TLBB",
+    "W_BEL_23_TLBB"
+   ],
+   [
+    "W_BEL_28_TLBB",
+    "W_BEL_29_TLBB"
+   ],
+   [
+    "W_BEL_14_TLBB",
+    "W_BEL_24_TLBB"
+   ]
+  ]
+ },
+ {
+  "task": "выбор инструмента",
+  "case": "sets-15",
+  "model": "openai/gpt-4o-mini",
+  "seconds": 5.12,
+  "prompt_tokens": 22042,
+  "completion_tokens": 413,
+  "cost_usd": 0.0035541,
+  "error": null,
+  "valid": true,
+  "tool": "screen_single_wells",
+  "tool_reason": "Выбор инструмента screen_single_wells обусловлен тем, что по текущим данным есть вероятность, что недобор может быть закрыт одной скважиной. Это позволяет более эффективно использовать ресурсы и снизить затраты на расчеты, так как нет необходимости в полном переборе наборов мероприятий. При этом, учитывая высокие значения доверия для всех скважин, можно предположить, что одна из них может закрыть недобор."
+ },
+ {
+  "task": "наборы",
+  "case": "sets-15",
+  "model": "openai/gpt-4o-mini",
+  "seconds": 8.82,
+  "prompt_tokens": 22014,
+  "completion_tokens": 538,
+  "cost_usd": 0.0036249,
+  "error": null,
+  "valid": false,
+  "sets": 3,
+  "outside_register": [
+   "W_BEL_22_TLBB",
+   "W_BEL_27_TLBB"
+  ],
+  "best_register_coverage": 0.28,
+  "wells": [
+   [
+    "W_BEL_12_TLBB",
+    "W_BEL_13_TLBB",
+    "W_BEL_22_TLBB"
+   ],
+   [
+    "W_BEL_27_TLBB",
+    "W_BEL_28_TLBB",
+    "W_BEL_29_TLBB"
+   ],
+   [
+    "W_BEL_30_TLBB",
+    "W_BEL_31_TLBB",
+    "W_BEL_55_TLBB"
+   ]
+  ]
+ },
+ {
+  "task": "выбор инструмента",
+  "case": "sets-18",
+  "model": "openai/gpt-4o-mini",
+  "seconds": 5.93,
+  "prompt_tokens": 24429,
+  "completion_tokens": 310,
+  "cost_usd": 0.00385035,
+  "error": null,
+  "valid": true,
+  "tool": "screen_single_wells",
+  "tool_reason": "Выбор инструмента screen_single_wells обусловлен тем, что по текущим данным вероятно, что недобор может быть закрыт одной скважиной. Все скважины имеют высокий уровень доверия, что позволяет использовать этот инструмент для более экономичного решения."
+ },
+ {
+  "task": "наборы",
+  "case": "sets-18",
+  "model": "openai/gpt-4o-mini",
+  "seconds": 7.85,
+  "prompt_tokens": 24401,
+  "completion_tokens": 416,
+  "cost_usd": 0.00390975,
+  "error": null,
+  "valid": true,
+  "sets": 3,
+  "outside_register": [],
+  "best_register_coverage": 0.24,
+  "wells": [
+   [
+    "W_BEL_13_TLBB",
+    "W_BEL_12_TLBB",
+    "W_BEL_23_TLBB"
+   ],
+   [
+    "W_BEL_14_TLBB",
+    "W_BEL_24_TLBB"
+   ],
+   [
+    "W_BEL_25_TLBB"
+   ]
+  ]
+ },
+ {
+  "task": "гипотезы",
+  "case": "hyp-06",
+  "model": "openai/gpt-4.1",
+  "seconds": 13.68,
+  "prompt_tokens": 9287,
+  "completion_tokens": 1450,
+  "cost_usd": 0.030174,
+  "error": null,
+  "valid": true,
+  "count": 6,
+  "unknown_wells": [],
+  "key_well_first": false,
+  "key_well_any": true,
+  "first": "Групповая причина (например, сетевой/технологический сбой, не связанный с отдельной скважиной)"
+ },
+ {
+  "task": "гипотезы",
+  "case": "hyp-15",
+  "model": "openai/gpt-4.1",
+  "seconds": 11.57,
+  "prompt_tokens": 17097,
+  "completion_tokens": 1092,
+  "cost_usd": 0.04293,
+  "error": null,
+  "valid": true,
+  "count": 5,
+  "unknown_wells": [],
+  "key_well_first": true,
+  "key_well_any": true,
+  "first": "Остановка ЭЦН или сбой управления на W_BEL_22_TLBB"
+ },
+ {
+  "task": "гипотезы",
+  "case": "hyp-18",
+  "model": "openai/gpt-4.1",
+  "seconds": 11.02,
+  "prompt_tokens": 19829,
+  "completion_tokens": 1199,
+  "cost_usd": 0.04925,
+  "error": null,
+  "valid": true,
+  "count": 6,
+  "unknown_wells": [],
+  "key_well_first": true,
+  "key_well_any": true,
+  "first": "Остановка скважины W_BEL_22_TLBB"
+ },
+ {
+  "task": "выбор инструмента",
+  "case": "sets-06",
+  "model": "openai/gpt-4.1",
+  "seconds": 8.12,
+  "prompt_tokens": 14121,
+  "completion_tokens": 1045,
+  "cost_usd": 0.036602,
+  "error": null,
+  "valid": true,
+  "tool": "calculate_sets",
+  "tool_reason": "Ни одна скважина из реестра возможностей не способна единолично компенсировать текущий дефицит нефти. Требуется подбор набора скважин для совместного воздействия с учётом ограничений по воде и минимальному забойному давлению."
+ },
+ {
+  "task": "наборы",
+  "case": "sets-06",
+  "model": "openai/gpt-4.1",
+  "seconds": 6.59,
+  "prompt_tokens": 14093,
+  "completion_tokens": 773,
+  "cost_usd": 0.013442,
+  "error": null,
+  "valid": true,
+  "sets": 3,
+  "outside_register": [],
+  "best_register_coverage": 1.46,
+  "wells": [
+   [
+    "W_BEL_13_TLBB",
+    "W_BEL_12_TLBB",
+    "W_BEL_23_TLBB",
+    "W_BEL_29_TLBB"
+   ],
+   [
+    "W_BEL_13_TLBB",
+    "W_BEL_12_TLBB",
+    "W_BEL_23_TLBB",
+    "W_BEL_28_TLBB",
+    "W_BEL_29_TLBB",
+    "W_BEL_30_TLBB",
+    "W_BEL_31_TLBB"
+   ],
+   [
+    "W_BEL_13_TLBB",
+    "W_BEL_12_TLBB",
+    "W_BEL_30_TLBB",
+    "W_BEL_31_TLBB"
+   ]
+  ]
+ },
+ {
+  "task": "выбор инструмента",
+  "case": "sets-15",
+  "model": "openai/gpt-4.1",
+  "seconds": 8.41,
+  "prompt_tokens": 22036,
+  "completion_tokens": 766,
+  "cost_usd": 0.017368,
+  "error": null,
+  "valid": true,
+  "tool": "calculate_sets",
+  "tool_reason": "Ни одна скважина из реестра возможностей не обеспечивает прирост нефти, достаточный для компенсации текущего недобора (28,24 т/сут). Максимальный индивидуальный прирост — 4,1 т/сут. Для достижения цели потребуется воздействие на несколько скважин. Поэтому выбран инструмент полного расчёта наборов мероприятий (calculate_sets)."
+ },
+ {
+  "task": "наборы",
+  "case": "sets-15",
+  "model": "openai/gpt-4.1",
+  "seconds": 8.14,
+  "prompt_tokens": 22008,
+  "completion_tokens": 723,
+  "cost_usd": 0.016968,
+  "error": null,
+  "valid": true,
+  "sets": 3,
+  "outside_register": [],
+  "best_register_coverage": 0.61,
+  "wells": [
+   [
+    "W_BEL_13_TLBB",
+    "W_BEL_12_TLBB",
+    "W_BEL_23_TLBB"
+   ],
+   [
+    "W_BEL_13_TLBB",
+    "W_BEL_12_TLBB",
+    "W_BEL_23_TLBB",
+    "W_BEL_29_TLBB",
+    "W_BEL_31_TLBB"
+   ],
+   [
+    "W_BEL_13_TLBB",
+    "W_BEL_12_TLBB",
+    "W_BEL_14_TLBB"
+   ]
+  ]
+ },
+ {
+  "task": "выбор инструмента",
+  "case": "sets-18",
+  "model": "openai/gpt-4.1",
+  "seconds": 5.28,
+  "prompt_tokens": 24423,
+  "completion_tokens": 645,
+  "cost_usd": 0.017718,
+  "error": null,
+  "valid": true,
+  "tool": "calculate_sets",
+  "tool_reason": "Выбран инструмент полного расчёта (calculate_sets), так как ни одна скважина из реестра возможностей не может единолично закрыть требуемый прирост нефти. Необходим подбор набора скважин с учётом ограничений по воде, минимальному забойному давлению и максимальному изменению режимов."
+ },
+ {
+  "task": "наборы",
+  "case": "sets-18",
+  "model": "openai/gpt-4.1",
+  "seconds": 8.23,
+  "prompt_tokens": 24395,
+  "completion_tokens": 978,
+  "cost_usd": 0.020326,
+  "error": null,
+  "valid": true,
+  "sets": 3,
+  "outside_register": [],
+  "best_register_coverage": 0.61,
+  "wells": [
+   [
+    "W_BEL_13_TLBB",
+    "W_BEL_12_TLBB",
+    "W_BEL_23_TLBB",
+    "W_BEL_31_TLBB",
+    "W_BEL_29_TLBB",
+    "W_BEL_28_TLBB",
+    "W_BEL_14_TLBB",
+    "W_BEL_24_TLBB",
+    "W_BEL_30_TLBB",
+    "W_BEL_55_TLBB",
+    "W_BEL_26_TLBB"
+   ],
+   [
+    "W_BEL_13_TLBB",
+    "W_BEL_12_TLBB",
+    "W_BEL_23_TLBB",
+    "W_BEL_29_TLBB",
+    "W_BEL_28_TLBB",
+    "W_BEL_31_TLBB",
+    "W_BEL_14_TLBB",
+    "W_BEL_24_TLBB",
+    "W_BEL_30_TLBB",
+    "W_BEL_55_TLBB",
+    "W_BEL_26_TLBB"
+   ],
+   [
+    "W_BEL_13_TLBB",
+    "W_BEL_12_TLBB",
+    "W_BEL_23_TLBB",
+    "W_BEL_29_TLBB",
+    "W_BEL_31_TLBB",
+    "W_BEL_30_TLBB",
+    "W_BEL_24_TLBB",
+    "W_BEL_55_TLBB"
+   ]
+  ]
+ }
+]

@@ -50,7 +50,10 @@ def run_case(model,prompt,schema,key):
         answer,meta=llm_client.ask(prompt,schema,model,llm_client.OPENROUTER_URL,key)
         return answer,meta,None
     except Exception as exc:  # the comparison records failures instead of stopping
-        return None,{'model':model},str(exc)[:300]
+        text=str(exc)
+        # A schema error starts with the whole answer; keep the reason itself.
+        reason=text.split('\n',1)[0][-200:] if 'Failed validating' in text or ' is too ' in text else text[:300]
+        return None,{'model':model},reason
 
 
 def main():
