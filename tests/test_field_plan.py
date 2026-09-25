@@ -69,3 +69,14 @@ class OwnActionTests(unittest.TestCase):
 
 if __name__=='__main__':
     unittest.main()
+
+
+class BoundaryTests(unittest.TestCase):
+    def test_exact_five_percent_deviation_opens_an_incident(self):
+        plan=277.777
+        separator=pd.DataFrame({'hour':[0,1],'timestamp':pd.date_range('2026-09-14',periods=2,freq='h'),
+                                'plan_oil_tpd':plan,'separator_oil_tpd':[plan,plan*0.95]})
+        self.assertEqual(len(incident_view.opened_incidents(separator,1)),1)
+        separator.loc[1,'separator_oil_tpd']=plan*0.951
+        self.assertTrue(incident_view.opened_incidents(separator,1).empty)
+

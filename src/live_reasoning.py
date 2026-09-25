@@ -70,7 +70,7 @@ def generate(root, context, fingerprint):
     for item in answer['hypotheses']:
         unknown=set(item['candidate_wells'])-allowed
         if unknown:
-            raise ValueError(f'Codex указал неизвестные скважины: {sorted(unknown)}')
+            raise ValueError(f'LLM указала неизвестные скважины: {sorted(unknown)}')
     name,model,_=llm_client.provider()
     return {'fingerprint':fingerprint,'context':context,'answer':answer,'generator':'Codex CLI' if name=='codex' else f'{name}:{model}'}
 

@@ -49,11 +49,12 @@ def opened_incidents(separator: pd.DataFrame, hour: int, threshold_pct: float = 
     current = separator[separator["hour"] <= hour].sort_values('hour').reset_index(drop=True).copy()
     # Missing separator fact is neither recovery nor a new production event.
     current = current[current["separator_oil_tpd"].notna()].copy()
+    # Rounded to 0.001 %: an exactly -5 % deviation must not escape the limit through float noise.
     current["deviation_pct"] = ((current["separator_oil_tpd"]-current["plan_oil_tpd"])
-                                / current["plan_oil_tpd"]*100)
+                                / current["plan_oil_tpd"]*100).round(3)
     outside = current["deviation_pct"] <= threshold_pct
     first_crossing = outside & ~outside.shift(fill_value=False)
-    step_pct = current["separator_oil_tpd"].pct_change(fill_method=None) * 100
+    step_pct = (current["separator_oil_tpd"].pct_change(fill_method=None) * 100).round(3)
     additional_drop = outside & (step_pct <= threshold_pct)
     triggers = current[first_crossing | additional_drop]
     rows = []

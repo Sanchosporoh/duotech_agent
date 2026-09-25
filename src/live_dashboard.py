@@ -265,6 +265,7 @@ def render(root):
             st.dataframe(pd.DataFrame([{'Запуск':r['run_id'],'Час':f"{r['hour']:02d}:00",'Итог':r['status'],'Длительность, с':r.get('duration_seconds'),
             'LLM':r.get('tools',{}).get('llm_calls'),'GAP':r.get('tools',{}).get('gap_runs'),'PROSPER':r.get('tools',{}).get('prosper_runs'),
             'Токены запроса (оценка)':r.get('tools',{}).get('llm_prompt_tokens_estimate'),
+            'Стоимость LLM, $':r.get('tools',{}).get('llm_cost_usd'),
             'Инциденты':'; '.join(f"{k}: {v['stage']}"+(f" ({v['recompute']})" if v.get('recompute') else '') for k,v in r.get('incidents',{}).items()),
             'Ошибки':'; '.join(r.get('errors',[])+([r['tools']['limit_exceeded']] if r.get('tools',{}).get('limit_exceeded') else []))} for r in runs]),hide_index=True)
             st.caption('Лимиты такта — config/cycle_limits.json. Токены — оценка по длине запроса (символы / 4): Codex CLI не сообщает фактический расход.')
