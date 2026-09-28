@@ -308,3 +308,18 @@ class HoldAfterStopTests(unittest.TestCase):
         self.assertEqual(held['status'],'held')
         self.assertEqual(held['tools']['llm_calls'],0)
         self.assertEqual(held['tools']['prosper_runs'],0)
+
+
+class BudgetResetTests(unittest.TestCase):
+    def test_engineer_reset_needs_a_reason_and_restarts_the_count(self):
+        from pathlib import Path
+        from src import tool_gateway
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory, patch.dict(os.environ,{'AGENT_TOOL_BACKEND':'stub'}):
+            root=make_project(directory)
+            run_until(root,6)
+            self.assertGreater(tool_gateway._used_today(Path(root))['llm_calls'],0)
+            with self.assertRaises(ValueError):tool_gateway.reset_budget(root,' ')
+            import time;time.sleep(1.1)
+            record=tool_gateway.reset_budget(root,'серия пяти прогонов')
+            self.assertGreater(record['used_before']['llm_calls'],0)
+            self.assertEqual(tool_gateway._used_today(Path(root))['llm_calls'],0)

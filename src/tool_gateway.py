@@ -35,6 +35,23 @@ def start_tick(root):
            'day':_used_today(Path(root))}
 
 
+def budget_resets(root):
+    path=Path(root)/'data'/'live'/'budget_resets.json'
+    return json.loads(path.read_text(encoding='utf-8')) if path.exists() else []
+
+
+def reset_budget(root,reason,who='инженер'):
+    """Explicit human decision: today's daily budget starts again. Logged with time, author and reason."""
+    from datetime import datetime
+    if not reason or not reason.strip():raise ValueError('Сброс суточного бюджета требует причины')
+    from src.live_reasoning import save
+    now=datetime.now()
+    record={'at':now.isoformat(timespec='seconds'),'run_id_from':now.strftime('%Y%m%d-%H%M%S'),'who':who,'reason':reason.strip(),
+            'used_before':_used_today(Path(root))}
+    save(Path(root)/'data'/'live'/'budget_resets.json',budget_resets(root)+[record])
+    return record
+
+
 def _used_today(root):
     """Calls already spent today according to the run journal (daily budget, protects against cost attacks)."""
     from datetime import date
@@ -44,7 +61,10 @@ def _used_today(root):
     live=root/'data'/'live'
     # A fresh reset archives the run journal; today's archived runs still count against the budget.
     paths=list((live/'runs').glob(pattern))+list(live.glob('decision_archive/*/runs/'+pattern))
+    # An engineer's budget reset (with a recorded reason) starts the count again; runs before it do not count.
+    since=max((r['run_id_from'] for r in budget_resets(root) if r['run_id_from'].startswith(today.replace('-',''))),default='')
     for path in paths:
+        if path.stem<since:continue
         try:tools=json.loads(path.read_text(encoding='utf-8')).get('tools',{})
         except (OSError,ValueError):continue
         for kind in used:used[kind]+=tools.get(kind,0) or 0

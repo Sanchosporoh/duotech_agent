@@ -29,6 +29,7 @@ def main():
     mode=parser.add_mutually_exclusive_group(required=True)
     mode.add_argument('--once',action='store_true',help='один такт')
     mode.add_argument('--loop',action='store_true',help='такты с паузой --interval')
+    mode.add_argument('--reset-budget',metavar='ПРИЧИНА',help='решение инженера: начать суточный бюджет заново (записывается с причиной)')
     mode.add_argument('--reset',action='store_true',help='начать сутки заново: решения, эскалации и часы агента в архив')
     parser.add_argument('--fresh',action='store_true',help='вместе с --reset: убрать и сохранённые расчёты, чтобы Codex, PROSPER и GAP посчитали заново')
     parser.add_argument('--interval',type=float,default=60.,help='пауза между тактами, с')
@@ -37,6 +38,10 @@ def main():
     if args.backend:os.environ['AGENT_TOOL_BACKEND']=args.backend
     from src import cycle_service
     root=args.root.resolve()
+    if args.reset_budget is not None:
+        from src import tool_gateway
+        record=tool_gateway.reset_budget(root,args.reset_budget)
+        print('Суточный бюджет начат заново. Израсходовано до сброса:',record['used_before'],'· причина:',record['reason']);return
     if args.reset:
         from src.reset_decisions import reset
         archive=reset(root,fresh=args.fresh)
