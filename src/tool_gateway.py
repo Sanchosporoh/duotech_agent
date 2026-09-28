@@ -139,7 +139,7 @@ def cache_marker():
     marker={'tool_backend':'stub'} if backend()=='stub' else {}
     from src import llm_client
     name,model,_=llm_client.provider()
-    if name!='codex':marker['llm']=f'{name}:{model}'
+    if name!='codex' or model:marker['llm']=f'{name}:{model}'
     return marker
 
 
@@ -159,6 +159,16 @@ def _check_money():
         message=f'Исчерпан суточный денежный потолок LLM: потрачено ${spent:.3f} при потолке ${ceiling:g}. Цикл остановлен и передан инженеру.'
         _tick['limit_exceeded']=message
         raise LimitExceeded(message)
+
+
+def codex_cost(root,model,used):
+    """Codex CLI runs on a subscription: the cost is an estimate by the API price list (config/llm_prices.json)."""
+    path=Path(root)/'config'/'llm_prices.json'
+    prices=json.loads(path.read_text(encoding='utf-8')).get('models',{}) if path.exists() else {}
+    price=prices.get(model or '')
+    if not price or used.get('prompt_tokens') is None:return {}
+    cost=used['prompt_tokens']/1e6*price['input_per_million']+(used.get('completion_tokens') or 0)/1e6*price['output_per_million']
+    return {'cost_usd':round(cost,6),'cost_basis':'оценка по прайсу API'}
 
 
 def real_llm():
@@ -182,7 +192,8 @@ def ask_codex(root,prompt,schema,cwd):
             name,model,url=llm_client.provider()
             if name=='codex':
                 from src.codex_cli import ask_codex as real
-                answer=real(prompt,schema,cwd);meta={'model':'Codex CLI'}
+                answer,used=real(prompt,schema,cwd,model=model,with_usage=True)
+                meta=dict(used,model='Codex CLI · '+(model or 'модель аккаунта'),**codex_cost(root,model,used))
             else:
                 answer,meta=llm_client.ask(prompt,schema,model,url,llm_client.api_key() if name=='openrouter' else None)
     except Exception:

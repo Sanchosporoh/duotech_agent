@@ -23,12 +23,12 @@ def find_codex_executable() -> str:
         "или добавьте каталог Codex в PATH."
     )
 
-def ask_codex(prompt,schema,project,model=None,use_local_oss_model=False,local_provider="ollama",timeout_seconds=90):
-    """Запускает Codex CLI и возвращает проверяемый JSON."""
+def ask_codex(prompt,schema,project,model=None,use_local_oss_model=False,local_provider="ollama",timeout_seconds=90,with_usage=False):
+    """Запускает Codex CLI и возвращает проверяемый JSON; with_usage=True — ещё и расход токенов из --json."""
     with tempfile.TemporaryDirectory() as temp:
         p=Path(temp); schema_file=p/"schema.json"; answer=p/"answer.json"
         schema_file.write_text(json.dumps(schema,ensure_ascii=False),encoding="utf-8")
-        cmd=[find_codex_executable(),"exec","--ephemeral","--sandbox","read-only","--skip-git-repo-check","--cd",str(project),"--output-schema",str(schema_file),"--output-last-message",str(answer)]
+        cmd=[find_codex_executable(),"exec"]+(["--json"] if with_usage else [])+["--ephemeral","--sandbox","read-only","--skip-git-repo-check","--cd",str(project),"--output-schema",str(schema_file),"--output-last-message",str(answer)]
         if model: cmd.extend(["--model",model])
         if use_local_oss_model: cmd.extend(["--oss","--local-provider",local_provider])
         # Длинный контекст по скважинам нельзя передавать аргументом командной
@@ -45,4 +45,18 @@ def ask_codex(prompt,schema,project,model=None,use_local_oss_model=False,local_p
             raise RuntimeError(f"Codex завершился с кодом {completed.returncode}: {detail[-2000:]}")
         if not answer.exists():
             raise RuntimeError("Codex не создал файл ответа: "+completed.stderr[-1000:])
-        return json.loads(answer.read_text(encoding="utf-8"))
+        result=json.loads(answer.read_text(encoding="utf-8"))
+        if not with_usage:return result
+        return result,usage(completed.stdout)
+
+
+def usage(events):
+    """Token usage of the turn from `codex exec --json` events (input includes cached input)."""
+    for line in reversed(events.splitlines()):
+        try:event=json.loads(line)
+        except ValueError:continue
+        if event.get("type")=="turn.completed":
+            used=event.get("usage",{})
+            return {"prompt_tokens":used.get("input_tokens"),"cached_prompt_tokens":used.get("cached_input_tokens"),
+                    "completion_tokens":(used.get("output_tokens") or 0)+(used.get("reasoning_output_tokens") or 0)}
+    return {}

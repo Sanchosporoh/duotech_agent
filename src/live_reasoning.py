@@ -72,7 +72,7 @@ def generate(root, context, fingerprint):
         if unknown:
             raise ValueError(f'LLM указала неизвестные скважины: {sorted(unknown)}')
     name,model,_=llm_client.provider()
-    return {'fingerprint':fingerprint,'context':context,'answer':answer,'generator':'Codex CLI' if name=='codex' else f'{name}:{model}'}
+    return {'fingerprint':fingerprint,'context':context,'answer':answer,'generator':('Codex CLI'+(f' · {model}' if model else '')) if name=='codex' else f'{name}:{model}'}
 
 
 def save(path, result):

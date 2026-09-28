@@ -323,3 +323,27 @@ class BudgetResetTests(unittest.TestCase):
             record=tool_gateway.reset_budget(root,'серия пяти прогонов')
             self.assertGreater(record['used_before']['llm_calls'],0)
             self.assertEqual(tool_gateway._used_today(Path(root))['llm_calls'],0)
+
+
+class CodexCostTests(unittest.TestCase):
+    EVENTS=('{"type":"thread.started"}\n{"type":"turn.completed","usage":{"input_tokens":20000,"cached_input_tokens":12800,'
+            '"output_tokens":900,"reasoning_output_tokens":100}}\n')
+
+    def test_usage_is_read_from_codex_json_events(self):
+        from src import codex_cli
+        self.assertEqual(codex_cli.usage(self.EVENTS),{'prompt_tokens':20000,'cached_prompt_tokens':12800,'completion_tokens':1000})
+        self.assertEqual(codex_cli.usage('no events'),{})
+
+    def test_pinned_codex_model_is_journaled_with_price_list_cost(self):
+        from src import tool_gateway, codex_cli
+        with tempfile.TemporaryDirectory() as directory:
+            root=make_project(directory)
+            with patch.dict(os.environ,{'AGENT_TOOL_BACKEND':'petex','AGENT_LLM':'codex:gpt-6-sol'}), \
+                 patch.object(codex_cli,'ask_codex',return_value=({'ok':True},codex_cli.usage(self.EVENTS))):
+                tool_gateway.start_tick(root)
+                tool_gateway.ask_codex(root,'x',{},directory)
+                tools=tool_gateway.finish_tick()
+        self.assertEqual(tools['llm_models'],['Codex CLI · gpt-6-sol'])
+        # 20 000 × $2/M + 1 000 × $10/M
+        self.assertAlmostEqual(tools['llm_cost_usd'],0.05)
+        self.assertEqual(tools['llm_tokens_reported'],{'prompt':20000,'completion':1000})
