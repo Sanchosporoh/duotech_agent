@@ -7,7 +7,9 @@ Quality is checked by rules, cost comes from OpenRouter usage. Nothing touches P
 Run (key in OPENROUTER_API_KEY, user environment is enough):
   python tools/compare_llm.py
   python tools/compare_llm.py --models openai/gpt-4o-mini z-ai/glm-5.3-flash
-Results: course/llm_eval/comparison.json and course/llm_eval/comparison.md
+Local models in LM Studio (no key, data stay in the company network):
+  python tools/compare_llm.py --base-url http://10.9.0.88:1234/v1 --label local --models qwen/qwen3.6-35b-a3b qwen/qwen3.8-27b
+Results: course/llm_eval/comparison[_<label>].json and .md
 """
 import argparse
 import json
@@ -45,9 +47,9 @@ def score_sets(answer,case):
             'best_register_coverage':round(coverage,2),'wells':[a['selected_wells'] for a in alternatives]}
 
 
-def run_case(model,prompt,schema,key):
+def run_case(model,prompt,schema,key,base_url=llm_client.OPENROUTER_URL):
     try:
-        answer,meta=llm_client.ask(prompt,schema,model,llm_client.OPENROUTER_URL,key)
+        answer,meta=llm_client.ask(prompt,schema,model,base_url,key)
         return answer,meta,None
     except Exception as exc:  # the comparison records failures instead of stopping
         text=str(exc)
@@ -59,9 +61,12 @@ def run_case(model,prompt,schema,key):
 def main():
     parser=argparse.ArgumentParser()
     parser.add_argument('--models',nargs='+',default=MODELS)
+    parser.add_argument('--base-url',help='OpenAI-compatible server in the company network, e.g. LM Studio; no key is sent')
+    parser.add_argument('--label',help='suffix of the result files, e.g. local')
     args=parser.parse_args()
-    key=llm_client.api_key()
-    if not key:
+    url=args.base_url.rstrip('/') if args.base_url else llm_client.OPENROUTER_URL
+    key=None if args.base_url else llm_client.api_key()
+    if not args.base_url and not key:
         print('Нет ключа OPENROUTER_API_KEY. Задайте его в PowerShell:\n'
               "  [Environment]::SetEnvironmentVariable('OPENROUTER_API_KEY','<ключ>','User')");return 1
     cases=json.loads((REPO/'course/llm_eval/cases.json').read_text(encoding='utf-8'))
@@ -74,20 +79,21 @@ def main():
         for case in cases['hypotheses']:
             telemetry=pd.DataFrame(case['context']['telemetry'])
             trust=well_trust.compute(REPO,telemetry,case['context']['hour'])
-            answer,meta,error=run_case(model,hypothesis_prompt(case['context'],trust),HYP_SCHEMA,key)
+            answer,meta,error=run_case(model,hypothesis_prompt(case['context'],trust),HYP_SCHEMA,key,url)
             rows.append({'task':'гипотезы','case':case['id'],**meta,'error':error,**(score_hypotheses(answer,case) if answer else {'valid':False})})
             print(model,case['id'],'ok' if answer else error,flush=True)
         for case in cases['measure_sets']:
             payload=dict(case['payload'],tools=TOOLS)
-            answer,meta,error=run_case(model,planning_prompt(payload),TOOL_SCHEMA,key)
+            answer,meta,error=run_case(model,planning_prompt(payload),TOOL_SCHEMA,key,url)
             rows.append({'task':'выбор инструмента','case':case['id'],**meta,'error':error,'valid':answer is not None,
                          'tool':answer and answer['tool'],'tool_reason':answer and answer['tool_reason']})
-            answer,meta,error=run_case(model,planning_prompt(payload,sets_only=True),SETS_SCHEMA,key)
+            answer,meta,error=run_case(model,planning_prompt(payload,sets_only=True),SETS_SCHEMA,key,url)
             rows.append({'task':'наборы','case':case['id'],**meta,'error':error,**(score_sets(answer,case) if answer else {'valid':False})})
             print(model,case['id'],'ok' if answer else error,flush=True)
     out=REPO/'course/llm_eval'
-    (out/'comparison.json').write_text(json.dumps(rows,ensure_ascii=False,indent=1),encoding='utf-8')
-    (out/'comparison.md').write_text(summary(rows),encoding='utf-8')
+    name='comparison'+(f'_{args.label}' if args.label else '')
+    (out/f'{name}.json').write_text(json.dumps(rows,ensure_ascii=False,indent=1),encoding='utf-8')
+    (out/f'{name}.md').write_text(summary(rows),encoding='utf-8')
     print(summary(rows))
     return 0
 
