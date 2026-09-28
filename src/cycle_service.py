@@ -8,7 +8,7 @@ import json
 import time
 import uuid
 import pandas as pd
-from src import autonomous_cycle, escalation, incident_lifecycle, incident_view, live_execution, live_monitor, tool_gateway
+from src import autonomous_cycle, escalation, incident_lifecycle, incident_view, license_retry, live_execution, live_monitor, tool_gateway
 from src.live_reasoning import save
 
 CONDITION_COLUMNS=['whp_bara','water_cut_pct','gor_m3m3']
@@ -79,6 +79,11 @@ def process_hour(root,hour):
             tool_gateway.set_open_incidents(len(active))
             if incidents.empty:
                 run.update(status='no_incidents')
+            elif escalation.holds(root):
+                # A ceiling or a repeated failure stopped the agent: no tools until the engineer resolves the item.
+                held=escalation.holds(root)[0]
+                run.update(status='held',errors=[f"Агент остановлен в {held['hour']:02d}:00 и ждёт разбора эскалации ({held['owner_role']}); "
+                                                 f"новые расчёты не запускаются. Открытые инциденты: {', '.join(active) or 'нет'}. Причина: {held['reason']}"])
             elif limits.get('max_open_incidents') is not None and len(active)>limits['max_open_incidents']:
                 run.update(status='too_many_incidents',errors=[f"Одновременно открыто {len(active)} инцидентов при лимите {limits['max_open_incidents']}: автоматический разбор остановлен, нужен инженер."])
             else:
@@ -133,12 +138,18 @@ def _escalate(root,run):
         items.append(escalation.raise_item(root,'Цикл агента','; '.join(run.get('errors',[])),run['run_id'],run['hour']))
     for name,state in run['incidents'].items():
         if state['stage']=='needs_attention':
-            items.append(escalation.raise_item(root,name,state.get('reason') or 'Расчёт остановлен',run['run_id'],run['hour']))
+            reason=state.get('reason') or 'Расчёт остановлен'
+            hold=reason==run.get('tools',{}).get('limit_exceeded') or reason.startswith(license_retry.REPEATED_FAILURE)
+            items.append(escalation.raise_item(root,name,reason,run['run_id'],run['hour'],hold=hold))
         elif state['stage']=='conditional_network_calculated' and state.get('network'):
             # GAP ran but no variant is admissible, including the all-capacity fallback: a model or constraint issue.
             problems=sorted({p for row in state['network'] for p in row['problems']})
             items.append(escalation.raise_item(root,name,'GAP: нет допустимого варианта, включая запасной расчёт всей регулирующей способности ('
                                                +', '.join(problems or ['цель не достигнута'])+'). Нужна проверка модели или ограничений',run['run_id'],run['hour']))
+    if run.get('slow'):
+        limit=_limits(root).get('slow_tick_seconds')
+        items.append(escalation.raise_item(root,'Цикл агента',f"Такт {run['hour']:02d}:00 длился {run['duration_seconds']:.0f} с при потолке времени {limit} с. "
+                                           'Расчёт не прерывался (иначе остаются открытые окна PetEx); проверить, что задержало PetEx или LLM',run['run_id'],run['hour']))
     items+=_decision_waits(root,run)
     return items
 

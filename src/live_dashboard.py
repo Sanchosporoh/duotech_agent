@@ -276,6 +276,14 @@ def render(root):
         if items:st.dataframe(pd.DataFrame([{'Что':i['subject'],'Причина':i['reason'],'Кому сейчас':i['current_role'],
             'Срок':i['deadline'].replace('T',' '),'Просрочено':'да' if i['overdue'] else 'нет','Час':f"{i['hour']:02d}:00",'Запуск':i['run_id']} for i in items]),hide_index=True)
         else:st.caption('Открытых эскалаций нет.')
+        if items:
+            labels={i['id']:f"{i['hour']:02d}:00 · {i['subject']} · {i['reason'][:80]}" for i in items}
+            chosen=st.selectbox('Эскалация',list(labels),format_func=labels.get,key='escalation_item')
+            outcome=st.text_input('Что сделано',key='escalation_outcome')
+            if st.button('Разобрано',disabled=not outcome.strip()):
+                escalation.close(root,chosen,outcome.strip());st.rerun()
+            if escalation.holds(root):
+                st.warning('Агент остановлен (потолок или повторный сбой расчёта) и не выполняет расчёты, пока эскалация не разобрана.')
         st.caption('Локальная очередь (data/live/escalations.json), уведомления не отправляются. Адресат и сроки — config/escalation.json.')
     with st.expander('Локальный реестр утверждений'):
         approvals=live_execution.approval_rows(root)

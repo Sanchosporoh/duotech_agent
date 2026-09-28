@@ -1,0 +1,258 @@
+{
+  "scenario": "Возврат предложения с новым комментарием каждый час (полный пересчёт каждый такт)",
+  "llm": "openrouter:openai/gpt-4.1",
+  "petex": "заглушки",
+  "limits": {
+    "llm_calls_per_incident": 1,
+    "llm_calls_per_plan": 2,
+    "max_llm_calls_per_day": 20,
+    "max_llm_cost_usd_per_day": 0.5,
+    "max_gap_runs": 5,
+    "max_gap_runs_per_day": 30
+  },
+  "stopped": {
+    "hour": 15,
+    "message": "Исчерпан суточный денежный потолок LLM: потрачено $0.534 при потолке $0.5. Цикл остановлен и передан инженеру."
+  },
+  "llm_calls_total": 15,
+  "llm_cost_usd_total": 0.5343,
+  "gap_runs_total": 27,
+  "hours": [
+    {
+      "hour": 0,
+      "llm_calls": 0,
+      "llm_calls_today": 0,
+      "gap_runs_today": 0,
+      "llm_cost_usd_today": 0.0,
+      "stage": null,
+      "limit": null
+    },
+    {
+      "hour": 1,
+      "llm_calls": 0,
+      "llm_calls_today": 0,
+      "gap_runs_today": 0,
+      "llm_cost_usd_today": 0.0,
+      "stage": null,
+      "limit": null
+    },
+    {
+      "hour": 2,
+      "llm_calls": 0,
+      "llm_calls_today": 0,
+      "gap_runs_today": 0,
+      "llm_cost_usd_today": 0.0,
+      "stage": null,
+      "limit": null
+    },
+    {
+      "hour": 3,
+      "llm_calls": 0,
+      "llm_calls_today": 0,
+      "gap_runs_today": 0,
+      "llm_cost_usd_today": 0.0,
+      "stage": null,
+      "limit": null
+    },
+    {
+      "hour": 4,
+      "llm_calls": 0,
+      "llm_calls_today": 0,
+      "gap_runs_today": 0,
+      "llm_cost_usd_today": 0.0,
+      "stage": null,
+      "limit": null
+    },
+    {
+      "hour": 5,
+      "llm_calls": 0,
+      "llm_calls_today": 0,
+      "gap_runs_today": 0,
+      "llm_cost_usd_today": 0.0,
+      "stage": null,
+      "limit": null
+    },
+    {
+      "hour": 6,
+      "llm_calls": 2,
+      "llm_calls_today": 2,
+      "gap_runs_today": 4,
+      "llm_cost_usd_today": 0.0672,
+      "stage": "awaiting_human_decision",
+      "limit": null
+    },
+    {
+      "hour": 7,
+      "llm_calls": 2,
+      "llm_calls_today": 4,
+      "gap_runs_today": 8,
+      "llm_cost_usd_today": 0.1295,
+      "stage": "awaiting_human_decision",
+      "limit": null
+    },
+    {
+      "hour": 8,
+      "llm_calls": 2,
+      "llm_calls_today": 6,
+      "gap_runs_today": 12,
+      "llm_cost_usd_today": 0.1946,
+      "stage": "awaiting_human_decision",
+      "limit": null
+    },
+    {
+      "hour": 9,
+      "llm_calls": 2,
+      "llm_calls_today": 8,
+      "gap_runs_today": 16,
+      "llm_cost_usd_today": 0.2619,
+      "stage": "awaiting_human_decision",
+      "limit": null
+    },
+    {
+      "hour": 10,
+      "llm_calls": 2,
+      "llm_calls_today": 10,
+      "gap_runs_today": 19,
+      "llm_cost_usd_today": 0.3317,
+      "stage": "awaiting_human_decision",
+      "limit": null
+    },
+    {
+      "hour": 11,
+      "llm_calls": 0,
+      "llm_calls_today": 10,
+      "gap_runs_today": 19,
+      "llm_cost_usd_today": 0.3317,
+      "stage": "needs_data",
+      "limit": null
+    },
+    {
+      "hour": 12,
+      "llm_calls": 0,
+      "llm_calls_today": 10,
+      "gap_runs_today": 19,
+      "llm_cost_usd_today": 0.3317,
+      "stage": "needs_data",
+      "limit": null
+    },
+    {
+      "hour": 13,
+      "llm_calls": 2,
+      "llm_calls_today": 12,
+      "gap_runs_today": 23,
+      "llm_cost_usd_today": 0.4153,
+      "stage": "awaiting_human_decision",
+      "limit": null
+    },
+    {
+      "hour": 14,
+      "llm_calls": 2,
+      "llm_calls_today": 14,
+      "gap_runs_today": 27,
+      "llm_cost_usd_today": 0.4938,
+      "stage": "awaiting_human_decision",
+      "limit": null
+    },
+    {
+      "hour": 15,
+      "llm_calls": 1,
+      "llm_calls_today": 15,
+      "gap_runs_today": 27,
+      "llm_cost_usd_today": 0.5343,
+      "stage": "needs_attention",
+      "limit": "Исчерпан суточный денежный потолок LLM: потрачено $0.534 при потолке $0.5. Цикл остановлен и передан инженеру."
+    },
+    {
+      "hour": 16,
+      "llm_calls": 0,
+      "llm_calls_today": 15,
+      "gap_runs_today": 27,
+      "llm_cost_usd_today": 0.5343,
+      "stage": "needs_attention",
+      "limit": "Исчерпан суточный денежный потолок LLM: потрачено $0.534 при потолке $0.5. Цикл остановлен и передан инженеру."
+    },
+    {
+      "hour": 17,
+      "llm_calls": 0,
+      "llm_calls_today": 15,
+      "gap_runs_today": 27,
+      "llm_cost_usd_today": 0.5343,
+      "stage": "needs_attention",
+      "limit": "Исчерпан суточный денежный потолок LLM: потрачено $0.534 при потолке $0.5. Цикл остановлен и передан инженеру."
+    },
+    {
+      "hour": 18,
+      "llm_calls": 0,
+      "llm_calls_today": 15,
+      "gap_runs_today": 27,
+      "llm_cost_usd_today": 0.5343,
+      "stage": "needs_attention",
+      "limit": "Исчерпан суточный денежный потолок LLM: потрачено $0.534 при потолке $0.5. Цикл остановлен и передан инженеру."
+    },
+    {
+      "hour": 19,
+      "llm_calls": 0,
+      "llm_calls_today": 15,
+      "gap_runs_today": 27,
+      "llm_cost_usd_today": 0.5343,
+      "stage": "needs_attention",
+      "limit": "Исчерпан суточный денежный потолок LLM: потрачено $0.534 при потолке $0.5. Цикл остановлен и передан инженеру."
+    },
+    {
+      "hour": 20,
+      "llm_calls": 0,
+      "llm_calls_today": 15,
+      "gap_runs_today": 27,
+      "llm_cost_usd_today": 0.5343,
+      "stage": "needs_attention",
+      "limit": "Исчерпан суточный денежный потолок LLM: потрачено $0.534 при потолке $0.5. Цикл остановлен и передан инженеру."
+    },
+    {
+      "hour": 21,
+      "llm_calls": 0,
+      "llm_calls_today": 15,
+      "gap_runs_today": 27,
+      "llm_cost_usd_today": 0.5343,
+      "stage": "needs_attention",
+      "limit": "Исчерпан суточный денежный потолок LLM: потрачено $0.534 при потолке $0.5. Цикл остановлен и передан инженеру."
+    },
+    {
+      "hour": 22,
+      "llm_calls": 0,
+      "llm_calls_today": 15,
+      "gap_runs_today": 27,
+      "llm_cost_usd_today": 0.5343,
+      "stage": "needs_attention",
+      "limit": "Исчерпан суточный денежный потолок LLM: потрачено $0.534 при потолке $0.5. Цикл остановлен и передан инженеру."
+    },
+    {
+      "hour": 23,
+      "llm_calls": 0,
+      "llm_calls_today": 15,
+      "gap_runs_today": 27,
+      "llm_cost_usd_today": 0.5343,
+      "stage": "needs_attention",
+      "limit": "Исчерпан суточный денежный потолок LLM: потрачено $0.534 при потолке $0.5. Цикл остановлен и передан инженеру."
+    }
+  ],
+  "escalations": [
+    {
+      "subject": "INC-20260914-1500",
+      "reason": "Исчерпан суточный денежный потолок LLM: потрачено $0.534 при потолке $0.5. Цикл остановлен и передан инженеру.",
+      "owner_role": "инженер-моделист",
+      "hour": 15
+    },
+    {
+      "subject": "INC-20260914-0600",
+      "reason": "Общий план компенсации не строится, пока не завершена диагностика всех открытых инцидентов: INC-20260914-1500",
+      "owner_role": "инженер-моделист",
+      "hour": 15
+    },
+    {
+      "subject": "INC-20260914-0600",
+      "reason": "Исчерпан суточный денежный потолок LLM: потрачено $0.534 при потолке $0.5. Цикл остановлен и передан инженеру.",
+      "owner_role": "инженер-моделист",
+      "hour": 16
+    }
+  ]
+}

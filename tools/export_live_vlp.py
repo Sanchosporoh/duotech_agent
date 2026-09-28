@@ -3,6 +3,7 @@ import argparse
 import json
 from pathlib import Path
 import sys
+import time
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
@@ -40,7 +41,14 @@ def main():
             if count<=0:raise ValueError('PROSPER не сформировал кривые VLP')
             server.set_value('PROSPER.ANL.VLP.EXP.File',str(destination))
             server.set_value('PROSPER.ANL.VLP.EXP.ExtType','tpd')
-            server.do_command('PROSPER.ANL.VLP.EXPORTBYEXT')
+            # PROSPER exports through the Windows clipboard; a busy clipboard is transient.
+            # The export only rewrites the output file, so repeating it is safe (the calculation is not repeated).
+            for attempt in range(5):
+                try:
+                    server.do_command('PROSPER.ANL.VLP.EXPORTBYEXT');break
+                except Exception as error:
+                    if 'Clipboard' not in str(error) or attempt==4:raise
+                    time.sleep(3*(attempt+1))
     finally:petex_apps.close_petex_apps(launched or [])
     if not destination.exists() or destination.stat().st_size==0:raise ValueError('Файл TPD не создан')
     print('VLP exported; model not saved:',destination)

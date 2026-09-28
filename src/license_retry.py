@@ -28,6 +28,7 @@ def petex_running():
     return False
 
 
+REPEATED_FAILURE='Повторный расчёт тоже не удался. '
 OPENSERVER_MESSAGES={'Variable name was not found':'PetEx не вернул результат расчёта (OpenServer: переменная результата не найдена — расчёт не выполнен или прерван)'}
 
 
@@ -89,7 +90,7 @@ def failure(root,message,now=None,attempt=None):
     if not is_license_error(message):
         if attempt is not None and not _retry_marker(attempt).exists():
             return {'stage':'calculation_failed','reason':readable(message)+'. Агент повторит расчёт в следующем такте.','error':message}
-        prefix='Повторный расчёт тоже не удался. ' if attempt is not None else ''
+        prefix=REPEATED_FAILURE if attempt is not None else ''
         return {'stage':'needs_attention','reason':prefix+readable(message)+'. Нужна проверка модели инженером-моделистом.','error':message}
     policy=json.loads((root/'config/license_retry.json').read_text(encoding='utf-8'))
     count=state(root).get('failure_count',0)+1

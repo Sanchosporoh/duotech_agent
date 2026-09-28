@@ -16,6 +16,10 @@ def set_limits(root,**values):
     path.write_text(json.dumps(limits,ensure_ascii=False),encoding='utf-8')
 
 
+def calls(run):
+    return run["tools"].get("llm_calls",0),run["tools"].get("gap_runs",0)
+
+
 def run_until(root,hour):
     result=None
     for _ in range(hour+1):result=cycle_service.tick(root)
@@ -238,3 +242,69 @@ class CalculationFailureTests(unittest.TestCase):
         self.assertNotIn('Traceback',state['reason'])
         items=[i for i in escalation.open_items(root) if i.get('kind')=='agent']
         self.assertEqual(items[0]['owner_role'],'инженер-моделист')
+
+
+class MoneyAndTimeCeilingTests(unittest.TestCase):
+    def test_money_ceiling_stops_on_actual_provider_cost_and_escalates(self):
+        from src import llm_client, tool_stubs
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory, \
+             patch.dict(os.environ,{'AGENT_TOOL_BACKEND':'stub','AGENT_REAL_LLM':'1','AGENT_LLM':'openrouter:openai/gpt-4.1'}):
+            root=make_project(directory)
+            set_limits(root,max_llm_cost_usd_per_day=0.05)
+            def paid(prompt,schema,model,url,key=None):
+                return tool_stubs.codex(prompt,schema),{'model':model,'seconds':1.,'prompt_tokens':20000,'completion_tokens':500,'cost_usd':0.03}
+            with patch.object(llm_client,'ask',side_effect=paid), patch.object(llm_client,'api_key',return_value='k'):
+                run=run_until(root,6)
+        self.assertIn('денежный потолок',run['tools']['limit_exceeded'])
+        self.assertEqual(run['tools']['llm_calls'],2)
+        self.assertEqual(run['incidents'][FIRST]['stage'],'needs_attention')
+        self.assertTrue(run['escalations'])
+
+    def test_slow_tick_goes_to_the_queue(self):
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory, patch.dict(os.environ,{'AGENT_TOOL_BACKEND':'stub'}):
+            root=make_project(directory)
+            set_limits(root,slow_tick_seconds=0)
+            run=cycle_service.tick(root)
+        self.assertTrue(run['slow'])
+        self.assertEqual(len(run['escalations']),1)
+
+
+class DailyBudgetResetTests(unittest.TestCase):
+    def test_fresh_reset_does_not_restore_the_daily_budget(self):
+        from pathlib import Path
+        from src import tool_gateway
+        from src.reset_decisions import reset
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory, patch.dict(os.environ,{'AGENT_TOOL_BACKEND':'stub'}):
+            root=make_project(directory)
+            run_until(root,6)
+            before=tool_gateway._used_today(Path(root))
+            self.assertGreater(before['llm_calls'],0)
+            reset(Path(root),fresh=True)
+            self.assertEqual(tool_gateway._used_today(Path(root)),before)
+
+
+class HoldAfterStopTests(unittest.TestCase):
+    TRACEBACK=CalculationFailureTests.TRACEBACK
+
+    def test_no_retry_after_a_ceiling_until_the_engineer_resolves_it(self):
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory, patch.dict(os.environ,{'AGENT_TOOL_BACKEND':'stub'}):
+            root=make_project(directory)
+            set_limits(root,max_gap_runs=1)
+            stopped=run_until(root,6)
+            self.assertTrue(stopped['tools']['limit_exceeded'])
+            held=cycle_service.tick(root)
+            self.assertEqual(held['status'],'held')
+            self.assertEqual(calls(held),(0,0))
+            for item in escalation.holds(root):escalation.close(root,item['id'],'лимит проверен')
+            set_limits(root,max_gap_runs=5)
+            resumed=cycle_service.tick(root)
+            self.assertEqual(resumed['status'],'processed')
+            self.assertGreater(resumed['tools']['gap_runs'],0)
+
+    def test_repeated_calculation_failure_holds_the_agent(self):
+        root,run=CalculationFailureTests.run_with_failures(self,2)
+        cycle_service.tick(root)
+        held=cycle_service.tick(root)
+        self.assertEqual(held['status'],'held')
+        self.assertEqual(held['tools']['llm_calls'],0)
+        self.assertEqual(held['tools']['prosper_runs'],0)

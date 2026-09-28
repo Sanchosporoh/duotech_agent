@@ -18,7 +18,7 @@ def load(root):
     return json.loads(path.read_text(encoding='utf-8')) if path.exists() else {'items':[]}
 
 
-def raise_item(root,subject,reason,run_id,hour,now=None,kind='agent'):
+def raise_item(root,subject,reason,run_id,hour,now=None,kind='agent',hold=False):
     """Add an open item unless the same subject and reason are already waiting.
 
     kind='agent' — the agent could not finish (owner: modelling engineer);
@@ -33,7 +33,7 @@ def raise_item(root,subject,reason,run_id,hour,now=None,kind='agent'):
     prefix='decision_' if kind=='decision' else ''
     owner,hours=policy[prefix+'owner_role'],policy[prefix+'response_hours']
     backup,extra=policy[prefix+'backup_role'],policy[prefix+'backup_response_hours']
-    item={'id':uuid.uuid4().hex[:8],'status':'open','kind':kind,'subject':subject,'reason':reason,'run_id':run_id,'hour':hour,
+    item={'id':uuid.uuid4().hex[:8],'status':'open','kind':kind,'hold':hold,'subject':subject,'reason':reason,'run_id':run_id,'hour':hour,
           'created_at':now.isoformat(timespec='seconds'),
           'owner_role':owner,'deadline':(now+timedelta(hours=hours)).isoformat(timespec='minutes'),
           'backup_role':backup,'backup_deadline':(now+timedelta(hours=hours+extra)).isoformat(timespec='minutes')}
@@ -44,6 +44,12 @@ def raise_item(root,subject,reason,run_id,hour,now=None,kind='agent'):
     data['items'].append(item)
     save(_path(root),data)
     return item
+
+
+def holds(root):
+    """Open items that stop the agent until the engineer resolves them: a ceiling or a calculation that failed twice.
+    A retry after a ceiling would feed the runaway; an hourly retry of a broken calculation only spends tools."""
+    return [i for i in load(root)['items'] if i['status']=='open' and i.get('hold')]
 
 
 def close(root,item_id,outcome):

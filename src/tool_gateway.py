@@ -38,12 +38,17 @@ def start_tick(root):
 def _used_today(root):
     """Calls already spent today according to the run journal (daily budget, protects against cost attacks)."""
     from datetime import date
-    used={'llm_calls':0,'gap_runs':0,'prosper_runs':0}
+    used={'llm_calls':0,'gap_runs':0,'prosper_runs':0,'llm_cost_usd':0.}
     today=date.today().isoformat()
-    for path in (root/'data'/'live'/'runs').glob(today.replace('-','')+'-*.json'):
+    pattern=today.replace('-','')+'-*.json'
+    live=root/'data'/'live'
+    # A fresh reset archives the run journal; today's archived runs still count against the budget.
+    paths=list((live/'runs').glob(pattern))+list(live.glob('decision_archive/*/runs/'+pattern))
+    for path in paths:
         try:tools=json.loads(path.read_text(encoding='utf-8')).get('tools',{})
         except (OSError,ValueError):continue
         for kind in used:used[kind]+=tools.get(kind,0) or 0
+    used['llm_cost_usd']=round(used['llm_cost_usd'],6)
     return used
 
 
@@ -124,13 +129,31 @@ def guard(root):
         raise RuntimeError('Режим заглушек запрещён в рабочем каталоге проекта; используйте отдельную копию')
 
 
+def _check_money():
+    """Money ceiling from the provider's actual cost (OpenRouter, LM Studio); Codex has no per-call price."""
+    if _tick is None:return
+    ceiling=_tick['limits'].get('max_llm_cost_usd_per_day')
+    if ceiling is None:return
+    spent=_tick['day'].get('llm_cost_usd',0.)+sum(c.get('cost_usd') or 0 for c in _tick['calls'])
+    if spent>=ceiling:
+        message=f'Исчерпан суточный денежный потолок LLM: потрачено ${spent:.3f} при потолке ${ceiling:g}. Цикл остановлен и передан инженеру.'
+        _tick['limit_exceeded']=message
+        raise LimitExceeded(message)
+
+
+def real_llm():
+    """Stub PetEx with a real LLM: used by the cost attack, never changes the calculation tools."""
+    return backend()!='stub' or os.environ.get('AGENT_REAL_LLM')=='1'
+
+
 def ask_codex(root,prompt,schema,cwd):
     guard(root)
+    _check_money()
     _count('llm_calls')
     if _tick is not None:_tick['llm_prompt_chars']+=len(prompt)
     started=time.monotonic()
     try:
-        if backend()=='stub':
+        if not real_llm():
             from src import tool_stubs
             _stub_delay()
             answer=tool_stubs.codex(prompt,schema)
@@ -144,7 +167,7 @@ def ask_codex(root,prompt,schema,cwd):
                 answer,meta=llm_client.ask(prompt,schema,model,url,llm_client.api_key() if name=='openrouter' else None)
     except Exception:
         _record('llm',started,False,prompt_chars=len(prompt));raise
-    _record('llm',started,True,prompt_chars=len(prompt),**{k:v for k,v in (meta if backend()!='stub' else {}).items() if k!='seconds'})
+    _record('llm',started,True,prompt_chars=len(prompt),**{k:v for k,v in (meta if real_llm() else {}).items() if k!='seconds'})
     return answer
 
 
