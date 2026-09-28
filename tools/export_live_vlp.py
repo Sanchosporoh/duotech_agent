@@ -43,12 +43,13 @@ def main():
             server.set_value('PROSPER.ANL.VLP.EXP.ExtType','tpd')
             # PROSPER exports through the Windows clipboard; a busy clipboard is transient.
             # The export only rewrites the output file, so repeating it is safe (the calculation is not repeated).
-            for attempt in range(5):
+            # About 2 minutes in total: another program can hold the clipboard for a while.
+            for attempt in range(8):
                 try:
                     server.do_command('PROSPER.ANL.VLP.EXPORTBYEXT');break
                 except Exception as error:
-                    if 'Clipboard' not in str(error) or attempt==4:raise
-                    time.sleep(3*(attempt+1))
+                    if 'Clipboard' not in str(error) or attempt==7:raise
+                    time.sleep(min(5*(attempt+1),30))
     finally:petex_apps.close_petex_apps(launched or [])
     if not destination.exists() or destination.stat().st_size==0:raise ValueError('Файл TPD не создан')
     print('VLP exported; model not saved:',destination)

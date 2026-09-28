@@ -23,7 +23,7 @@ def find_codex_executable() -> str:
         "или добавьте каталог Codex в PATH."
     )
 
-def ask_codex(prompt,schema,project,model=None,use_local_oss_model=False,local_provider="ollama",timeout_seconds=90,with_usage=False):
+def ask_codex(prompt,schema,project,model=None,use_local_oss_model=False,local_provider="ollama",timeout_seconds=180,with_usage=False):
     """Запускает Codex CLI и возвращает проверяемый JSON; with_usage=True — ещё и расход токенов из --json."""
     with tempfile.TemporaryDirectory() as temp:
         p=Path(temp); schema_file=p/"schema.json"; answer=p/"answer.json"
@@ -37,7 +37,10 @@ def ask_codex(prompt,schema,project,model=None,use_local_oss_model=False,local_p
         environment=os.environ.copy()
         if not environment.get("CODEX_HOME") and environment.get("USERPROFILE"):
             environment["CODEX_HOME"]=str(Path(environment["USERPROFILE"])/".codex")
-        completed=subprocess.run(cmd,check=False,timeout=timeout_seconds,capture_output=True,input=prompt,text=True,encoding="utf-8",errors="replace",env=environment)
+        try:
+            completed=subprocess.run(cmd,check=False,timeout=timeout_seconds,capture_output=True,input=prompt,text=True,encoding="utf-8",errors="replace",env=environment)
+        except subprocess.TimeoutExpired:
+            raise RuntimeError(f"Codex{' ('+model+')' if model else ''} не ответил за {timeout_seconds} с. Вызов прерван; ответ не использован.") from None
         if completed.returncode != 0:
             detail=(completed.stderr or completed.stdout or "нет диагностического сообщения").strip()
             if 'readonly database' in detail.lower() or ('arg0' in detail and ('os error 5' in detail or 'Отказано в доступе' in detail)):

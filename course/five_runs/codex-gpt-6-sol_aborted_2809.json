@@ -1,0 +1,191 @@
+{
+  "summary": {
+    "llm": "codex:gpt-6-sol",
+    "runs": 5,
+    "successes": 0,
+    "failure_share": "5 из 5",
+    "llm_cost_usd_total": null,
+    "cost_per_success_usd": null,
+    "criterion": "course/five_runs/criterion.md"
+  },
+  "runs": [
+    {
+      "number": 1,
+      "variant_w22_stop": null,
+      "hour": 6,
+      "run_id": "20260928-162652-7aef95",
+      "success": false,
+      "checks": {
+        "1 готовое предложение": false,
+        "2 главная причина среди гипотез": false,
+        "3 валидатор и ограничения GAP": false,
+        "4 остановленная скважина не регулируется": true,
+        "5 нет потолка и сбоя агента": false
+      },
+      "observed": {
+        "stages": {
+          "INC-20260914-0600": "needs_attention"
+        },
+        "candidates": [],
+        "recommendation": null,
+        "expected_deficit_t": null,
+        "regulated_wells": []
+      },
+      "price": {
+        "llm_calls": 1,
+        "llm_cost_usd": null,
+        "tokens": {
+          "prompt_estimate": 5415
+        },
+        "prosper_runs": 0,
+        "gap_runs": 0,
+        "seconds": 91.46,
+        "models": []
+      }
+    },
+    {
+      "number": 2,
+      "variant_w22_stop": null,
+      "hour": 15,
+      "run_id": "20260928-163923-42a4e6",
+      "success": false,
+      "checks": {
+        "1 готовое предложение": false,
+        "2 главная причина среди гипотез": false,
+        "3 валидатор и ограничения GAP": false,
+        "4 остановленная скважина не регулируется": false,
+        "5 нет потолка и сбоя агента": true
+      },
+      "observed": {
+        "stages": {
+          "INC-20260914-0600": "pending",
+          "INC-20260914-1500": "pending"
+        },
+        "candidates": [],
+        "recommendation": null,
+        "expected_deficit_t": null,
+        "regulated_wells": []
+      },
+      "price": {
+        "llm_calls": 0,
+        "llm_cost_usd": null,
+        "tokens": {
+          "prompt_estimate": 0
+        },
+        "prosper_runs": 0,
+        "gap_runs": 0,
+        "seconds": 0.055,
+        "models": []
+      }
+    },
+    {
+      "number": 3,
+      "variant_w22_stop": null,
+      "hour": 18,
+      "run_id": "20260928-163924-9e4664",
+      "success": false,
+      "checks": {
+        "1 готовое предложение": false,
+        "2 главная причина среди гипотез": false,
+        "3 валидатор и ограничения GAP": false,
+        "4 остановленная скважина не регулируется": false,
+        "5 нет потолка и сбоя агента": true
+      },
+      "observed": {
+        "stages": {
+          "INC-20260914-0600": "pending",
+          "INC-20260914-1500": "pending"
+        },
+        "candidates": [],
+        "recommendation": null,
+        "expected_deficit_t": null,
+        "regulated_wells": []
+      },
+      "price": {
+        "llm_calls": 0,
+        "llm_cost_usd": null,
+        "tokens": {
+          "prompt_estimate": 0
+        },
+        "prosper_runs": 0,
+        "gap_runs": 0,
+        "seconds": 0.042,
+        "models": []
+      }
+    },
+    {
+      "number": 4,
+      "variant_w22_stop": 3,
+      "hour": 3,
+      "run_id": "20260928-163925-0cc1a4",
+      "success": false,
+      "checks": {
+        "1 готовое предложение": false,
+        "2 главная причина среди гипотез": true,
+        "3 валидатор и ограничения GAP": false,
+        "4 остановленная скважина не регулируется": false,
+        "5 нет потолка и сбоя агента": false
+      },
+      "observed": {
+        "stages": {
+          "INC-20260914-0300": "needs_attention"
+        },
+        "candidates": [
+          "W_BEL_22_TLBB"
+        ],
+        "recommendation": null,
+        "expected_deficit_t": null,
+        "regulated_wells": []
+      },
+      "price": {
+        "llm_calls": 2,
+        "llm_cost_usd": 0.062208,
+        "tokens": {
+          "prompt": 22689,
+          "completion": 1683
+        },
+        "prosper_runs": 0,
+        "gap_runs": 0,
+        "seconds": 131.486,
+        "models": [
+          "Codex CLI · gpt-6-sol"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "variant_w22_stop": 10,
+      "hour": 10,
+      "run_id": "20260928-164138-14e2f1",
+      "success": false,
+      "checks": {
+        "1 готовое предложение": false,
+        "2 главная причина среди гипотез": false,
+        "3 валидатор и ограничения GAP": false,
+        "4 остановленная скважина не регулируется": false,
+        "5 нет потолка и сбоя агента": true
+      },
+      "observed": {
+        "stages": {
+          "INC-20260914-0600": "pending",
+          "INC-20260914-1000": "pending"
+        },
+        "candidates": [],
+        "recommendation": null,
+        "expected_deficit_t": null,
+        "regulated_wells": []
+      },
+      "price": {
+        "llm_calls": 0,
+        "llm_cost_usd": null,
+        "tokens": {
+          "prompt_estimate": 0
+        },
+        "prosper_runs": 0,
+        "gap_runs": 0,
+        "seconds": 0.042,
+        "models": []
+      }
+    }
+  ]
+}

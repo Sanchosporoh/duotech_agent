@@ -347,3 +347,14 @@ class CodexCostTests(unittest.TestCase):
         # 20 000 × $2/M + 1 000 × $10/M
         self.assertAlmostEqual(tools['llm_cost_usd'],0.05)
         self.assertEqual(tools['llm_tokens_reported'],{'prompt':20000,'completion':1000})
+
+
+class CodexTimeoutTests(unittest.TestCase):
+    def test_timeout_gives_a_readable_message(self):
+        import subprocess
+        from src import codex_cli
+        with patch.object(codex_cli,'find_codex_executable',return_value='codex.exe'), \
+             patch.object(codex_cli.subprocess,'run',side_effect=subprocess.TimeoutExpired('codex.exe',180)):
+            with self.assertRaises(RuntimeError) as caught:
+                codex_cli.ask_codex('x',{},'.',model='gpt-6-sol')
+        self.assertEqual(str(caught.exception),'Codex (gpt-6-sol) не ответил за 180 с. Вызов прерван; ответ не использован.')
