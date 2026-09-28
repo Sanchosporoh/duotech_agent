@@ -29,6 +29,10 @@ def convert(markdown):
             out.append(f'<h2 id="{aid}">{inline(title)}</h2>');i+=1;continue
         if line.startswith('### '):out.append(f'<h3>{inline(line[4:].strip())}</h3>');i+=1;continue
         if line.strip()=='---':i+=1;continue
+        if line.startswith('```'):
+            block=[];i+=1
+            while i<len(lines) and not lines[i].startswith('```'):block.append(html.escape(lines[i]));i+=1
+            out.append('<pre>'+'\n'.join(block)+'</pre>');i+=1;continue
         if line.startswith('|'):
             rows=[]
             while i<len(lines) and lines[i].startswith('|'):
@@ -47,7 +51,7 @@ def convert(markdown):
             out.append('<ol>'+''.join(f'<li>{inline(t)}</li>' for t in items)+'</ol>');continue
         if line.strip():
             para=[line.strip()];i+=1
-            while i<len(lines) and lines[i].strip() and not re.match(r'(#|\||- |\d+\. |---)',lines[i]):para.append(lines[i].strip());i+=1
+            while i<len(lines) and lines[i].strip() and not re.match(r'(#|\||- |\d+\. |---|```)',lines[i]):para.append(lines[i].strip());i+=1
             out.append(f'<p>{inline(" ".join(para))}</p>');continue
         i+=1
     return '\n'.join(out),toc
@@ -79,6 +83,7 @@ th,td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px soli
 th{font-weight:600;background:var(--code);white-space:nowrap}
 tr:last-child td{border-bottom:none}
 @media (max-width:860px){.wrap{grid-template-columns:1fr;gap:18px}nav{position:static;display:flex;flex-wrap:wrap;gap:4px 14px}nav .kicker{width:100%}nav a{border-left:0;padding:2px 0}}
+pre{background:var(--code);border:1px solid var(--line);border-radius:6px;padding:12px 14px;overflow-x:auto;font:12.5px/1.5 "IBM Plex Mono",ui-monospace,monospace;margin:12px 0}
 @media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
 '''
 
