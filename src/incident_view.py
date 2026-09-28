@@ -53,8 +53,16 @@ def opened_incidents(separator: pd.DataFrame, hour: int, threshold_pct: float = 
     current["deviation_pct"] = ((current["separator_oil_tpd"]-current["plan_oil_tpd"])
                                 / current["plan_oil_tpd"]*100).round(3)
     outside = current["deviation_pct"] <= threshold_pct
-    first_crossing = outside & ~outside.shift(fill_value=False)
-    step_pct = (current["separator_oil_tpd"].pct_change(fill_method=None) * 100).round(3)
+    # The approved plan's own effect is not a production event: a planned stop must not open an incident,
+    # and an expected recovery must not mask a new loss that happens in the same hour.
+    effect = (current["execution_effect_oil_tpd"] if "execution_effect_oil_tpd" in current
+              else pd.Series(0., index=current.index))
+    unexplained = current["separator_oil_tpd"] - effect
+    # A crossing counts only if it would also happen with the previous hour's plan effect.
+    held = ((unexplained + effect.shift(fill_value=0.) - current["plan_oil_tpd"])
+            / current["plan_oil_tpd"]*100).round(3) <= threshold_pct
+    first_crossing = outside & ~outside.shift(fill_value=False) & held
+    step_pct = (unexplained.pct_change(fill_method=None) * 100).round(3)
     additional_drop = outside & (step_pct <= threshold_pct)
     triggers = current[first_crossing | additional_drop]
     rows = []
@@ -62,7 +70,7 @@ def opened_incidents(separator: pd.DataFrame, hour: int, threshold_pct: float = 
         is_additional = bool(additional_drop.loc[index])
         if is_additional:
             previous = current.loc[:index].iloc[-2]
-            loss = float(previous["separator_oil_tpd"] - point["separator_oil_tpd"])
+            loss = float(unexplained.loc[previous.name] - unexplained.loc[index])
             signal = "Дополнительное резкое снижение нефти на сепараторе"
         else:
             loss = float(point["plan_oil_tpd"] - point["separator_oil_tpd"])

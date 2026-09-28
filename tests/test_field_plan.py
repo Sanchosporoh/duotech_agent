@@ -80,3 +80,23 @@ class BoundaryTests(unittest.TestCase):
         separator.loc[1,'separator_oil_tpd']=plan*0.951
         self.assertTrue(incident_view.opened_incidents(separator,1).empty)
 
+    @staticmethod
+    def with_plan(raw,effect):
+        plan=100.
+        frame=pd.DataFrame({'hour':range(len(raw)),'timestamp':pd.date_range('2026-09-14',periods=len(raw),freq='h'),
+                            'plan_oil_tpd':plan,'execution_effect_oil_tpd':effect})
+        frame['separator_oil_tpd']=[r+e for r,e in zip(raw,effect)]
+        return frame
+
+    def test_planned_recovery_does_not_mask_a_new_stop_in_the_same_hour(self):
+        # Hour 3: the approved plan adds +20, a well stops (-20) at the same time; the separator does not move.
+        separator=self.with_plan([90,90,90,70],[0,0,0,20])
+        opened=incident_view.opened_incidents(separator,3)
+        self.assertEqual(opened.opened_hour.tolist(),[0,3])
+        self.assertEqual(opened.observed_loss_tpd.iloc[-1],20.)
+
+    def test_planned_stop_of_the_approved_plan_is_not_a_new_incident(self):
+        # The plan brings production inside the limit (+8), then its planned wash stop removes it again (-2).
+        separator=self.with_plan([90,90,90,90],[0,8,-2,-2])
+        self.assertEqual(incident_view.opened_incidents(separator,3).opened_hour.tolist(),[0])
+
