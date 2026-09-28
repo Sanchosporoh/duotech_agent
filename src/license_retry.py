@@ -1,6 +1,7 @@
 """Wall-clock retry for unavailable PetEx licenses, shared across calculations."""
 from datetime import datetime,timezone
 import json
+import re
 import time
 import subprocess
 from src.live_reasoning import save
@@ -27,6 +28,25 @@ def petex_running():
     return False
 
 
+OPENSERVER_MESSAGES={'Variable name was not found':'PetEx не вернул результат расчёта (OpenServer: переменная результата не найдена — расчёт не выполнен или прерван)'}
+
+
+def readable(message):
+    """The engineer sees the cause in one line; the traceback stays in 'error' for diagnostics."""
+    lines=[line.strip() for line in str(message).splitlines() if line.strip()]
+    if not lines:return 'Расчёт PetEx завершился без сообщения об ошибке'
+    last=lines[-1]
+    match=re.match(r'^[\w.]+(?:Error|Exception): (.*)$',last)
+    text=match.group(1) if match else last
+    for marker,explanation in OPENSERVER_MESSAGES.items():
+        if marker in text:return explanation
+    return 'Ошибка расчёта PetEx: '+text
+
+
+def _retry_marker(attempt):
+    return attempt.with_name('auto_retry.json')
+
+
 def is_license_error(message):
     return 'no openserver license available' in message.lower() or 'недоступна лицензия openserver' in message.lower()
 
@@ -44,6 +64,10 @@ def blocked(root,attempt=None,now=None):
         if previous.get('stage')=='completed':
             return {'stage':'needs_attention','reason':'Расчёт отмечен завершённым, но его результат отсутствует или повреждён. Нужен повторный расчёт; использовать этот результат нельзя.'}
         if previous.get('stage')=='retry_requested':return None
+        if previous.get('stage')=='calculation_failed':
+            # One automatic retry per calculation input; a second failure goes to the engineer.
+            save(_retry_marker(attempt),{'previous_error':previous.get('error','')})
+            return None
         if previous.get('stage')=='waiting_petex':
             return previous if petex_running() else None
         message=previous.get('error',previous.get('reason',''))
@@ -59,10 +83,14 @@ def blocked(root,attempt=None,now=None):
     return None
 
 
-def failure(root,message,now=None):
+def failure(root,message,now=None,attempt=None):
     if is_petex_busy(message):
         return {'stage':'waiting_petex','reason':PETEX_BUSY_REASON,'error':message}
-    if not is_license_error(message):return {'stage':'needs_attention','reason':message,'error':message}
+    if not is_license_error(message):
+        if attempt is not None and not _retry_marker(attempt).exists():
+            return {'stage':'calculation_failed','reason':readable(message)+'. Агент повторит расчёт в следующем такте.','error':message}
+        prefix='Повторный расчёт тоже не удался. ' if attempt is not None else ''
+        return {'stage':'needs_attention','reason':prefix+readable(message)+'. Нужна проверка модели инженером-моделистом.','error':message}
     policy=json.loads((root/'config/license_retry.json').read_text(encoding='utf-8'))
     count=state(root).get('failure_count',0)+1
     delay=min(policy['maximum_delay_seconds'],policy['initial_delay_seconds']*2**min(count-1,20))

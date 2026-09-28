@@ -125,7 +125,7 @@ def prepare(root,context,key,answer,checks,model_state=None,reuse=None,progress=
              'water_limit':f"текущая вода сепаратора + {limits['water_margin_m3d']:g} м³/сут",
              'budget':'не задан','crew_availability':'не задан'},'excluded':excluded,'model_state':model_state}
     if model_state is not None and not model_state['ready']:
-        return {'stage':model_state['stage'] if model_state.get('stage') in ('waiting_license','waiting_petex') else 'awaiting_model_state','need':need,'reason':model_state['reason']}
+        return {'stage':model_state['stage'] if model_state.get('stage') in ('waiting_license','waiting_petex','calculation_failed','needs_attention') else 'awaiting_model_state','need':need,'reason':model_state['reason']}
     def finish(plan):
         if progress:progress(plan)
         plan=calculate(root,context,key,plan,eligible)
@@ -286,7 +286,7 @@ def calculate(root,context,key,plan,eligible):
     completed=tool_gateway.run_worker(root,'run_live_gap',folder/'request.json',output)
     if completed.returncode or not output.exists():
         error=(completed.stderr or completed.stdout)[-2000:]
-        failure=license_retry.failure(root,error)
+        failure=license_retry.failure(root,error,attempt=attempt)
         save(attempt,failure);plan['network_error']=failure['reason']
         plan['stage']=failure['stage']
     else:

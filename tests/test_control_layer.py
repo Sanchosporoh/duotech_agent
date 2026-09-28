@@ -198,3 +198,43 @@ class GapLicenseTests(unittest.TestCase):
             self.assertEqual(later['tools']['llm_calls'],0)
             self.assertGreater(later['tools']['gap_runs'],0)
             self.assertEqual(later['incidents'][FIRST]['stage'],'awaiting_human_decision')
+
+
+class CalculationFailureTests(unittest.TestCase):
+    TRACEBACK=('Traceback (most recent call last):\n  File "tools/export_live_vlp.py", line 39, in main\n'
+               'open_server.OpenServerError: Variable name was not found\n')
+
+    def run_with_failures(self,failures):
+        import subprocess
+        from src import tool_gateway
+        directory=tempfile.TemporaryDirectory(ignore_cleanup_errors=True);self.addCleanup(directory.cleanup)
+        patcher=patch.dict(os.environ,{'AGENT_TOOL_BACKEND':'stub'});patcher.start();self.addCleanup(patcher.stop)
+        root=make_project(directory.name)
+        real=tool_gateway.run_worker;left=[failures]
+        def failing(root_,script,request,output):
+            if script=='export_live_vlp' and left[0]>0:
+                left[0]-=1
+                return subprocess.CompletedProcess([script],1,'',self.TRACEBACK)
+            return real(root_,script,request,output)
+        worker=patch('src.live_adaptation.tool_gateway.run_worker',side_effect=failing);worker.start();self.addCleanup(worker.stop)
+        return root,run_until(root,6)
+
+    def test_failed_petex_calculation_is_retried_once_without_escalation(self):
+        root,run=self.run_with_failures(1)
+        state=run['incidents'][FIRST]
+        self.assertEqual(state['stage'],'calculation_failed')
+        self.assertNotIn('Traceback',state['reason'])
+        self.assertIn('повторит расчёт',state['reason'])
+        self.assertEqual([i for i in escalation.open_items(root) if i.get('kind')=='agent'],[])
+        later=cycle_service.tick(root)
+        self.assertEqual(later['incidents'][FIRST]['stage'],'awaiting_human_decision')
+
+    def test_second_failure_goes_to_the_modelling_engineer(self):
+        root,run=self.run_with_failures(2)
+        later=cycle_service.tick(root)
+        state=later['incidents'][FIRST]
+        self.assertEqual(state['stage'],'needs_attention')
+        self.assertTrue(state['reason'].startswith('Повторный расчёт тоже не удался'))
+        self.assertNotIn('Traceback',state['reason'])
+        items=[i for i in escalation.open_items(root) if i.get('kind')=='agent']
+        self.assertEqual(items[0]['owner_role'],'инженер-моделист')

@@ -39,7 +39,7 @@ def prepare(root,context,key,plan,model_state):
         completed=tool_gateway.run_worker(root,'run_live_gap',folder/'request.json',output)
         if completed.returncode or not output.exists():
             reason=(completed.stderr or completed.stdout)[-2000:]
-            failure=license_retry.failure(root,reason)
+            failure=license_retry.failure(root,reason,attempt=attempt)
             save(attempt,failure)
             return dict(failure,ready=False)
         license_retry.success(root)

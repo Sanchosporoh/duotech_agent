@@ -52,7 +52,7 @@ def agent_watch(root,seen):
 
 STAGE_LABELS={'pending':'Агент ещё не обработал текущие данные','needs_data':'Недостаточно данных для расчёта',
     'waiting_license':'Ожидание лицензии OpenServer','waiting_petex':'PetEx занят другим расчётом — повтор в следующем такте',
-    'running':'Расчёт выполняется','needs_attention':'Работа остановлена — причина указана ниже',
+    'running':'Расчёт выполняется','calculation_failed':'Ошибка расчёта PetEx — повтор в следующем такте','needs_attention':'Работа остановлена — причина указана ниже',
     'awaiting_human_decision':'Предложение готово, требуется решение инженера','awaiting_model_state':'Недостаточно данных для расчёта сети',
     'conditional_network_calculated':'Сеть рассчитана, допустимого варианта нет','approved_for_execution':'Решение утверждено'}
 
@@ -147,7 +147,7 @@ def render(root):
                 st.caption(f"Пересчёт в этом часу: {label}. Последний полный расчёт — {recompute['basis_hour']:02d}:00. "+'; '.join(recompute['reasons']))
             if execution_state.get('stage')=='approved_for_execution':
                 st.success('Решение утверждено. Эффекты выполняются по часам из локального реестра.')
-            if execution_state.get('error') and execution_state.get('stage')!='waiting_license': st.error('Цикл остановлен: '+execution_state['error'])
+            if execution_state.get('error') and execution_state.get('stage') not in ('waiting_license','waiting_petex','calculation_failed'): st.error('Цикл остановлен: '+license_retry.readable(execution_state['error']))
             answer=execution_state.get('hypotheses')
             st.markdown('#### 3. Гипотезы: что могло случиться')
             if answer:

@@ -59,7 +59,7 @@ def run(root,context,key,answer):
         save(folder/'request.json',request);save(attempt,{'well_id':well,'stage':'running'})
         completed=tool_gateway.run_worker(root,'fit_live_prosper',folder/'request.json',output)
         if completed.returncode or not output.exists():
-            error=dict(license_retry.failure(root,(completed.stderr or completed.stdout)[-2000:]),well_id=well)
+            error=dict(license_retry.failure(root,(completed.stderr or completed.stdout)[-2000:],attempt=attempt),well_id=well)
             save(attempt,error);results.append(error)
         else:
             license_retry.success(root)
@@ -84,7 +84,7 @@ def prepare_lifts(root,context,adaptation):
         excluded.append({'well_id':fit['well_id'],'reason':reason})
         assumptions.append(fit['well_id']+': не регулируется планом — '+reason+'. В сети остаётся исходная модель скважины (допущение)')
     for fit in adaptation:
-        if fit.get('stage') in ('waiting_license','waiting_petex','running'):
+        if fit.get('stage') in ('waiting_license','waiting_petex','running','calculation_failed'):
             return {'ready':False,'stage':fit['stage'],'reason':fit['well_id']+': '+fit.get('reason','Расчёт ещё не завершён'),'well_id':fit['well_id']}
         if fit.get('stage')=='screened':
             assumptions.append(fit['well_id']+': '+fit['reason'])
@@ -119,7 +119,7 @@ def prepare_lifts(root,context,adaptation):
             completed=tool_gateway.run_worker(root,'export_live_vlp',folder/'request.json',output)
             if completed.returncode or not output.exists():
                 reason=(completed.stderr or completed.stdout)[-2000:]
-                error=license_retry.failure(root,reason)
+                error=license_retry.failure(root,reason,attempt=attempt)
                 save(attempt,error)
                 return dict(error,ready=False)
             license_retry.success(root)
