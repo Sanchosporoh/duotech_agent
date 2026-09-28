@@ -358,3 +358,28 @@ class CodexTimeoutTests(unittest.TestCase):
             with self.assertRaises(RuntimeError) as caught:
                 codex_cli.ask_codex('x',{},'.',model='gpt-6-sol')
         self.assertEqual(str(caught.exception),'Codex (gpt-6-sol) не ответил за 180 с. Вызов прерван; ответ не использован.')
+
+
+class NoNewDataTests(unittest.TestCase):
+    def test_without_new_data_nothing_is_recalculated(self):
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory, patch.dict(os.environ,{'AGENT_TOOL_BACKEND':'stub'}):
+            root=make_project(directory)
+            run_until(root,6)
+            for _ in range(8):
+                run=cycle_service.tick(root)
+                self.assertEqual(calls(run),(0,0),f"{run['hour']:02d}:00")
+
+    def test_grown_need_that_old_sets_do_not_close_gets_one_capacity_run(self):
+        from pathlib import Path
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory, patch.dict(os.environ,{'AGENT_TOOL_BACKEND':'stub'}):
+            root=make_project(directory)
+            run_until(root,6)
+            path=Path(root)/'data/live/field_basis.json'
+            basis=json.loads(path.read_text(encoding='utf-8'))
+            # The need has grown beyond the previous sets and no capacity check was made.
+            for alternative in basis['plan']['network']['alternatives']:alternative['gain_oil_tpd']=0.1
+            basis['plan'].pop('capacity_check',None)
+            path.write_text(json.dumps(basis,ensure_ascii=False),encoding='utf-8')
+            run=cycle_service.tick(root)
+        self.assertEqual(run['tools']['llm_calls'],0)
+        self.assertEqual(run['tools']['gap_runs'],1)

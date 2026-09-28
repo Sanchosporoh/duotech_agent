@@ -51,8 +51,6 @@ def classify(policy,basis,current):
     if moved:reasons.append(f"Давление изменилось больше {policy['pressure_tolerance_bar']:g} бар с последнего полного расчёта: "+', '.join(moved))
     if basis['oil_tpd'] and abs(current['oil_tpd']-basis['oil_tpd'])/basis['oil_tpd']*100>policy['oil_change_full_pct']:
         reasons.append(f"Нефть сепаратора изменилась больше {policy['oil_change_full_pct']:g} % без объяснения")
-    if current['hour']-basis['hour']>=policy['max_basis_age_hours']:
-        reasons.append(f"Прошло {current['hour']-basis['hour']} ч с последнего полного расчёта")
     if reasons:return 'full',reasons
     changed=sorted({w for w,c in current['controls'].items() if basis['controls'].get(w)!=c}|{e.split('|')[0] for e in new})
     if changed:reasons.append('Изменились режимы скважин: '+', '.join(changed))

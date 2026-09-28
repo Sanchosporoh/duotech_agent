@@ -140,6 +140,9 @@ def prepare(root,context,key,answer,checks,model_state=None,reuse=None,progress=
                 alternative['selected_wells']=alternative['selected_wells']+[w for w in ids if w not in alternative['selected_wells']]
             plan['mandatory_wells']=mandatory
             plan=calculate(root,context,key,plan,usable)
+        return check_capacity(plan,usable)
+    def check_capacity(plan,usable):
+        # No set closes the need within the constraints: check the whole regulating capacity once in GAP.
         alternatives=plan.get('network',{}).get('alternatives',[])
         if alternatives and not any(a.get('constraints_met') and a.get('conditional_target_met') for a in alternatives):
             capacity={'need':need,'input':payload,'proposal':{'alternatives':[{
@@ -159,6 +162,16 @@ def prepare(root,context,key,answer,checks,model_state=None,reuse=None,progress=
                 plan=evaluate_horizon(plan)
                 if reuse.get('capacity_check',{}).get('network'):
                     plan['capacity_check']=evaluate_horizon(dict(reuse['capacity_check'],need=need))
+                    return plan
+                # No new data: GAP is not repeated (it maximises oil and would give the same result).
+                # Only a grown need that the previous sets no longer close is worth one GAP run
+                # of the whole regulating capacity (engineer, 28.09).
+                ids=[m['well_id'] for m in violators(plan,eligible,limits)]
+                usable=[dict(i,direction='correct') if i['well_id'] in ids else i for i in eligible]
+                plan=check_capacity(plan,usable)
+                if plan.get('capacity_check'):
+                    plan['capacity_reason']=(f"Потребная компенсация выросла до {need['required_extra_oil_tpd']:.2f} т/сут: "
+                                             'прежние наборы её не закрывают — проверена вся регулирующая способность в GAP без новых вызовов LLM')
                 return plan
             return finish(plan)
     path=root/'data'/'live'/'plans'/f'{key}.json'

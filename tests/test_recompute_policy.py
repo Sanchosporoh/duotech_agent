@@ -35,7 +35,8 @@ class ClassifyTests(unittest.TestCase):
         self.assertEqual(self.level(comments={'I':'не трогать W'}),'full')
         self.assertEqual(self.level(incidents=['I','J'],comments={'I':'','J':''}),'full')
         self.assertEqual(self.level(dependencies='e'),'full')
-        self.assertEqual(self.level(hour=12),'full')
+        # Time alone is not new data: neither LLM nor GAP (engineer, 28.09).
+        self.assertEqual(self.level(hour=12),'none')
 
     def test_new_incident_is_not_reported_as_engineer_comment(self):
         level,reasons=recompute_policy.classify(POLICY,signature(),signature(hour=7,incidents=['I','J'],comments={'I':'','J':''}))
