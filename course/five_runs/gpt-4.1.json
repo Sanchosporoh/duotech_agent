@@ -1,0 +1,304 @@
+{
+  "summary": {
+    "llm": "openrouter:openai/gpt-4.1",
+    "runs": 5,
+    "successes": 3,
+    "failure_share": "2 из 5",
+    "llm_cost_usd_total": null,
+    "cost_per_success_usd": 0.1735,
+    "criterion": "course/five_runs/criterion.md",
+    "series_llm_cost_usd": 0.5205,
+    "series_llm_calls": 14,
+    "series_gap_runs": 19,
+    "series_prosper_runs": 8,
+    "series_machine_minutes": 26.0,
+    "note": "Цена серии — все такты серии по журналу (включая пересчёты между прогонами). Прогон 1: OpenRouter HTTP 403 «Access denied by security policy» на втором вызове. Прогон 5: не выполнен — суточный денежный потолок $0.5 исчерпан серией (агент остановлен до разбора)."
+  },
+  "runs": [
+    {
+      "number": 1,
+      "variant_w22_stop": null,
+      "hour": 6,
+      "run_id": "20260928-140327-fefb18",
+      "success": false,
+      "checks": {
+        "1 готовое предложение": false,
+        "2 главная причина среди гипотез": true,
+        "3 валидатор и ограничения GAP": false,
+        "4 остановленная скважина не регулируется": true,
+        "5 нет потолка и сбоя агента": false
+      },
+      "observed": {
+        "stages": {
+          "INC-20260914-0600": "needs_attention"
+        },
+        "candidates": [
+          "W_BEL_11_TLBB",
+          "W_BEL_12_TLBB",
+          "W_BEL_13_TLBB",
+          "W_BEL_14_TLBB",
+          "W_BEL_22_TLBB",
+          "W_BEL_23_TLBB",
+          "W_BEL_24_TLBB",
+          "W_BEL_25_TLBB",
+          "W_BEL_26_TLBB",
+          "W_BEL_27_TLBB",
+          "W_BEL_28_TLBB",
+          "W_BEL_29_TLBB",
+          "W_BEL_30_TLBB",
+          "W_BEL_31_TLBB",
+          "W_BEL_50_TLBB",
+          "W_BEL_55_TLBB"
+        ],
+        "recommendation": null,
+        "expected_deficit_t": null,
+        "regulated_wells": []
+      },
+      "price": {
+        "llm_calls": 2,
+        "llm_cost_usd": 0.027228,
+        "tokens": {
+          "prompt": 9302,
+          "completion": 1078
+        },
+        "prosper_runs": 2,
+        "gap_runs": 0,
+        "seconds": 262.952,
+        "models": [
+          "openai/gpt-4.1"
+        ]
+      }
+    },
+    {
+      "number": 2,
+      "variant_w22_stop": null,
+      "hour": 15,
+      "run_id": "20260928-141704-15caaf",
+      "success": true,
+      "checks": {
+        "1 готовое предложение": true,
+        "2 главная причина среди гипотез": true,
+        "3 валидатор и ограничения GAP": true,
+        "4 остановленная скважина не регулируется": true,
+        "5 нет потолка и сбоя агента": true
+      },
+      "observed": {
+        "stages": {
+          "INC-20260914-0600": "awaiting_human_decision",
+          "INC-20260914-1500": "awaiting_human_decision"
+        },
+        "candidates": [
+          "W_BEL_11_TLBB",
+          "W_BEL_12_TLBB",
+          "W_BEL_13_TLBB",
+          "W_BEL_14_TLBB",
+          "W_BEL_22_TLBB",
+          "W_BEL_23_TLBB",
+          "W_BEL_24_TLBB",
+          "W_BEL_25_TLBB",
+          "W_BEL_26_TLBB",
+          "W_BEL_27_TLBB",
+          "W_BEL_28_TLBB",
+          "W_BEL_29_TLBB",
+          "W_BEL_30_TLBB",
+          "W_BEL_31_TLBB",
+          "W_BEL_50_TLBB",
+          "W_BEL_55_TLBB"
+        ],
+        "recommendation": "Регулирование доступных скважин без промывки",
+        "expected_deficit_t": 16.029555391403996,
+        "regulated_wells": [
+          "W_BEL_12_TLBB",
+          "W_BEL_13_TLBB",
+          "W_BEL_14_TLBB",
+          "W_BEL_23_TLBB",
+          "W_BEL_24_TLBB",
+          "W_BEL_25_TLBB",
+          "W_BEL_26_TLBB",
+          "W_BEL_28_TLBB",
+          "W_BEL_29_TLBB",
+          "W_BEL_30_TLBB",
+          "W_BEL_31_TLBB",
+          "W_BEL_50_TLBB",
+          "W_BEL_55_TLBB"
+        ]
+      },
+      "price": {
+        "llm_calls": 3,
+        "llm_cost_usd": 0.140744,
+        "tokens": {
+          "prompt": 58412,
+          "completion": 2990
+        },
+        "prosper_runs": 2,
+        "gap_runs": 4,
+        "seconds": 265.765,
+        "models": [
+          "openai/gpt-4.1"
+        ]
+      }
+    },
+    {
+      "number": 3,
+      "variant_w22_stop": null,
+      "hour": 18,
+      "run_id": "20260928-142131-c76604",
+      "success": true,
+      "checks": {
+        "1 готовое предложение": true,
+        "2 главная причина среди гипотез": true,
+        "3 валидатор и ограничения GAP": true,
+        "4 остановленная скважина не регулируется": true,
+        "5 нет потолка и сбоя агента": true
+      },
+      "observed": {
+        "stages": {
+          "INC-20260914-0600": "awaiting_human_decision",
+          "INC-20260914-1500": "awaiting_human_decision"
+        },
+        "candidates": [
+          "W_BEL_22_TLBB",
+          "W_BEL_24_TLBB",
+          "W_BEL_25_TLBB",
+          "W_BEL_26_TLBB",
+          "W_BEL_27_TLBB",
+          "W_BEL_50_TLBB"
+        ],
+        "recommendation": "Регулирование доступных скважин без промывки",
+        "expected_deficit_t": 18.487564455212492,
+        "regulated_wells": [
+          "W_BEL_12_TLBB",
+          "W_BEL_13_TLBB",
+          "W_BEL_14_TLBB",
+          "W_BEL_23_TLBB",
+          "W_BEL_24_TLBB",
+          "W_BEL_25_TLBB",
+          "W_BEL_26_TLBB",
+          "W_BEL_28_TLBB",
+          "W_BEL_29_TLBB",
+          "W_BEL_30_TLBB",
+          "W_BEL_31_TLBB",
+          "W_BEL_50_TLBB",
+          "W_BEL_55_TLBB"
+        ]
+      },
+      "price": {
+        "llm_calls": 3,
+        "llm_cost_usd": 0.151302,
+        "tokens": {
+          "prompt": 62823,
+          "completion": 3207
+        },
+        "prosper_runs": 2,
+        "gap_runs": 4,
+        "seconds": 306.746,
+        "models": [
+          "openai/gpt-4.1"
+        ]
+      }
+    },
+    {
+      "number": 4,
+      "variant_w22_stop": 3,
+      "hour": 3,
+      "run_id": "20260928-142638-927a7e",
+      "success": true,
+      "checks": {
+        "1 готовое предложение": true,
+        "2 главная причина среди гипотез": true,
+        "3 валидатор и ограничения GAP": true,
+        "4 остановленная скважина не регулируется": true,
+        "5 нет потолка и сбоя агента": true
+      },
+      "observed": {
+        "stages": {
+          "INC-20260914-0300": "awaiting_human_decision"
+        },
+        "candidates": [
+          "W_BEL_11_TLBB",
+          "W_BEL_12_TLBB",
+          "W_BEL_13_TLBB",
+          "W_BEL_14_TLBB",
+          "W_BEL_22_TLBB",
+          "W_BEL_23_TLBB",
+          "W_BEL_24_TLBB",
+          "W_BEL_25_TLBB",
+          "W_BEL_26_TLBB",
+          "W_BEL_27_TLBB",
+          "W_BEL_28_TLBB",
+          "W_BEL_29_TLBB",
+          "W_BEL_30_TLBB",
+          "W_BEL_31_TLBB",
+          "W_BEL_50_TLBB",
+          "W_BEL_55_TLBB"
+        ],
+        "recommendation": "Регулирование доступных скважин без промывки",
+        "expected_deficit_t": 10.587306673966703,
+        "regulated_wells": [
+          "W_BEL_12_TLBB",
+          "W_BEL_13_TLBB",
+          "W_BEL_14_TLBB",
+          "W_BEL_23_TLBB",
+          "W_BEL_24_TLBB",
+          "W_BEL_25_TLBB",
+          "W_BEL_26_TLBB",
+          "W_BEL_28_TLBB",
+          "W_BEL_29_TLBB",
+          "W_BEL_30_TLBB",
+          "W_BEL_31_TLBB",
+          "W_BEL_50_TLBB",
+          "W_BEL_55_TLBB"
+        ]
+      },
+      "price": {
+        "llm_calls": 2,
+        "llm_cost_usd": 0.054702,
+        "tokens": {
+          "prompt": 20043,
+          "completion": 1827
+        },
+        "prosper_runs": 0,
+        "gap_runs": 3,
+        "seconds": 166.419,
+        "models": [
+          "openai/gpt-4.1"
+        ]
+      }
+    },
+    {
+      "number": 5,
+      "variant_w22_stop": 10,
+      "hour": 10,
+      "run_id": "20260928-142927-0c9801",
+      "success": false,
+      "checks": {
+        "1 готовое предложение": false,
+        "2 главная причина среди гипотез": false,
+        "3 валидатор и ограничения GAP": false,
+        "4 остановленная скважина не регулируется": false,
+        "5 нет потолка и сбоя агента": true
+      },
+      "observed": {
+        "stages": {
+          "INC-20260914-0600": "pending",
+          "INC-20260914-1000": "pending"
+        },
+        "candidates": [],
+        "recommendation": null,
+        "expected_deficit_t": null,
+        "regulated_wells": []
+      },
+      "price": {
+        "llm_calls": 0,
+        "llm_cost_usd": null,
+        "tokens": {
+          "prompt_estimate": 0
+        },
+        "prosper_runs": 0,
+        "gap_runs": 0,
+        "seconds": 0.058,
+        "models": []
+      }
+    }
+  ]
+}
