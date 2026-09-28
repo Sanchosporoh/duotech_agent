@@ -27,6 +27,10 @@ def raise_item(root,subject,reason,run_id,hour,now=None,kind='agent',hold=False)
     data=load(root)
     for item in data['items']:
         if item['status']=='open' and item['subject']==subject and item['reason']==reason:
+            # The same agent failure again in a later run: the agent holds until the engineer resolves it
+            # (a retry every hour only spends tools and feeds the runaway).
+            if kind=='agent' and item['run_id']!=run_id and not item.get('hold'):
+                item.update(hold=True,repeated_run_id=run_id);save(_path(root),data)
             return item
     policy=json.loads((root/'config'/'escalation.json').read_text(encoding='utf-8'))
     now=now or datetime.now()

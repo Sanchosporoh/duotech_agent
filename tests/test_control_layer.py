@@ -383,3 +383,15 @@ class NoNewDataTests(unittest.TestCase):
             run=cycle_service.tick(root)
         self.assertEqual(run['tools']['llm_calls'],0)
         self.assertEqual(run['tools']['gap_runs'],1)
+
+
+class RepeatedFailureHoldTests(unittest.TestCase):
+    def test_same_llm_failure_in_the_next_tick_holds_the_agent(self):
+        from src import tool_gateway
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory, patch.dict(os.environ,{'AGENT_TOOL_BACKEND':'stub'}):
+            root=make_project(directory)
+            with patch.object(tool_gateway,'ask_codex',side_effect=RuntimeError('LLM openai/gpt-4.1: провайдер отказал в доступе')):
+                run_until(root,7)
+                held=cycle_service.tick(root)
+        self.assertEqual(held['status'],'held')
+        self.assertEqual(held['tools']['llm_calls'],0)

@@ -68,6 +68,8 @@ def ask(prompt,schema,model,base_url,key=None,timeout=180):
     response=requests.post(base_url+'/chat/completions',headers=headers,json=body,timeout=timeout)
     seconds=round(time.monotonic()-started,2)
     if response.status_code!=200:
+        if response.status_code==403 and 'security policy' in response.text.lower():
+            raise RuntimeError(f'LLM {model}: провайдер отказал в доступе (HTTP 403, «Access denied by security policy») — ограничение сети или политики провайдера')
         raise RuntimeError(f'LLM {model}: HTTP {response.status_code}: {response.text[:300]}')
     data=response.json()
     usage=data.get('usage') or {}
