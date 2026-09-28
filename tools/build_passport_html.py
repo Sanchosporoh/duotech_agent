@@ -1,6 +1,5 @@
 """Build course/passport.html from course/passport.md (readable version for the reviewer).
 
-The review panel lists what the engineer has to check or approve; edit REVIEW below.
 Run: python tools/build_passport_html.py
 """
 import html
@@ -8,16 +7,6 @@ import re
 from pathlib import Path
 
 REPO=Path(__file__).resolve().parents[1]
-
-# (section anchor, kind, text): kind = approve (engineer decision) | check (verify the fact) | doubt (my uncertainty) | open (not done yet)
-REVIEW=[
-    ('r5','doubt','Р5: частота As-Is «1–2 раза в сутки» и нормы времени шагов — экспертная оценка владельца процесса, так и помечено. Для факта нужен хронометраж, выгрузка из журналов или опрос коллег.'),
-    ('r4','check','Р4: лимит LLM на такт = 1 × инциденты + 2 (согласовано). Остаются числа 5 GAP, 6 PROSPER, 3 инцидента на такт и суточный бюджет 20 LLM / 30 GAP — проверьте.'),
-    ('r4','open','Р4: DeepSeek и GLM через OpenRouter отвечают «Access denied by security policy» — ограничение сети или настроек аккаунта OpenRouter.'),
-    ('r4','check','Р4: скрининг одиночных скважин gpt-4.1 в настоящем прогоне не выбирала (одной скважины мало) — ветка проверена только на заглушках.'),
-    ('r3','doubt','Р3 / критерий 3.1: агент по расписанию запускается командой. Для надёжных 2 баллов лучше задача в Планировщике Windows — это настройка вашей системы, решение за вами.'),
-]
-LABEL={'approve':'Утвердить','check':'Проверить','doubt':'Сомнение','open':'Не сделано'}
 
 
 def inline(text):
@@ -89,23 +78,7 @@ table{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-numeric:
 th,td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--line)}
 th{font-weight:600;background:var(--code);white-space:nowrap}
 tr:last-child td{border-bottom:none}
-.review{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:18px 20px;margin:22px 0 8px}
-.review h2{border:0;margin:0 0 4px;padding:0;font-size:19px}
-.review .hint{color:var(--muted);font-size:13.5px;margin:0 0 12px}
-.review ol{list-style:none;padding:0;margin:0;display:grid;gap:8px}
-.review li{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:baseline;max-width:none;padding:8px 10px;border-radius:6px}
-.tag{font:600 11px/1 "IBM Plex Mono",ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;padding:5px 7px;border-radius:4px;white-space:nowrap}
-.approve{background:var(--approve-soft)}.approve .tag{color:var(--approve);border:1px solid var(--approve)}
-.check{background:var(--check-soft)}.check .tag{color:var(--check);border:1px solid var(--check)}
-.doubt{background:var(--doubt-soft)}.doubt .tag{color:var(--doubt);border:1px solid var(--doubt)}
-.open{background:var(--open-soft)}.open .tag{color:var(--open);border:1px solid var(--open)}
-.review li a{font-size:12.5px;color:var(--accent);white-space:nowrap}
-.flags{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}
-.flag{font-size:12.5px;padding:4px 8px;border-radius:4px;border:1px solid var(--line);background:var(--surface);cursor:pointer;color:var(--ink)}
-.flag:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-.flag[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
-@media (max-width:860px){.wrap{grid-template-columns:1fr;gap:18px}nav{position:static;display:flex;flex-wrap:wrap;gap:4px 14px}nav .kicker{width:100%}nav a{border-left:0;padding:2px 0}
-.review li{grid-template-columns:1fr}}
+@media (max-width:860px){.wrap{grid-template-columns:1fr;gap:18px}nav{position:static;display:flex;flex-wrap:wrap;gap:4px 14px}nav .kicker{width:100%}nav a{border-left:0;padding:2px 0}}
 @media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
 '''
 
@@ -115,29 +88,17 @@ def build():
     title=source.split('\n',1)[0].lstrip('# ').strip()
     meta=source.split('\n')[2:4]
     body,toc=convert(source)
-    items=''.join(f'<li class="{kind}" data-kind="{kind}"><span class="tag">{LABEL[kind]}</span><span>{html.escape(text)}</span><a href="#{aid}">к разделу</a></li>' for aid,kind,text in REVIEW)
-    counts={k:sum(1 for _,kind,_ in REVIEW if kind==k) for k in LABEL}
-    flags=''.join(f'<button class="flag" type="button" data-kind="{k}" aria-pressed="false">{LABEL[k]} · {counts[k]}</button>' for k in LABEL)
     nav=''.join(f'<a href="#{aid}">{html.escape(t)}</a>' for aid,t in toc)
     page=f'''<title>Паспорт агента мониторинга добычи</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@600&family=IBM+Plex+Sans:wght@400;600&display=swap">
 <style>{STYLE}</style>
 <div class="wrap">
-<nav aria-label="Разделы паспорта"><div class="kicker">Разделы</div><a href="#review">Проверить и утвердить</a>{nav}</nav>
+<nav aria-label="Разделы паспорта"><div class="kicker">Разделы</div>{nav}</nav>
 <main>
 <header><h1>{html.escape(title)}</h1><div class="meta">{"<br>".join(inline(m) for m in meta if m.strip())}</div></header>
-<section class="review" id="review"><h2>Что проверить и утвердить</h2>
-<p class="hint">Пункты, где нужно ваше решение, факт процесса или где я не уверен. Фильтр — по типу.</p>
-<div class="flags">{flags}</div><ol>{items}</ol></section>
 {body}
 </main></div>
-<script>
-(function(){{var buttons=document.querySelectorAll('.flag');var rows=document.querySelectorAll('.review li');var active=null;
-buttons.forEach(function(b){{b.addEventListener('click',function(){{active=active===b.dataset.kind?null:b.dataset.kind;
-buttons.forEach(function(x){{x.setAttribute('aria-pressed',String(x.dataset.kind===active));}});
-rows.forEach(function(r){{r.hidden=!!active&&r.dataset.kind!==active;}});}});}});}})();
-</script>
 '''
     (REPO/'course/passport.html').write_text(page,encoding='utf-8')
     return REPO/'course/passport.html'
