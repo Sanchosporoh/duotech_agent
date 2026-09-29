@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Как работает агент контроля добычи</title>
+  <link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;600&family=Geist+Mono:wght@400;500&family=Noto+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:  #ffffff;
+      --color-ink:    #19003c;   /* NS dark navy */
+      --color-muted:  #5b4f7a;
+      --color-accent: #41008c;   /* NS purple */
+      --font-sans:    'Golos Text', system-ui, sans-serif;
+      --font-serif:   'Noto Serif', serif;
+      --font-mono:    'Geist Mono', ui-monospace, monospace;
+    }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink);
+      min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1320px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em;
+      text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-sans); font-weight: 600; font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      letter-spacing: -0.01em; line-height: 1.15; color: var(--color-accent); margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 1280px; display: block; }
+    .name { font-family: var(--font-sans); font-weight: 600; font-size: 16px; fill: #19003c; }
+    .sub  { font-family: var(--font-mono); font-size: 12px; fill: #5b4f7a; }
+    .lbl  { font-family: var(--font-mono); font-size: 12px; fill: #5b4f7a; letter-spacing: 0.06em; }
+    .note { font-family: var(--font-mono); font-size: 11px; fill: #5b4f7a; }
+    .call { font-family: var(--font-serif); font-style: italic; font-size: 16px; fill: #19003c; }
+    .leg  { font-family: var(--font-mono); font-size: 11px; fill: #5b4f7a; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Блок-схема · NS Digital</p>
+    <h1>Как работает агент контроля добычи</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="agent-flow-title agent-flow-desc">
+        <title id="agent-flow-title">Как работает агент контроля добычи</title>
+        <desc id="agent-flow-desc">Каждый час агент проверяет замеры и при новом событии проходит гипотезы LLM, проверку PROSPER, наборы LLM, валидатор кода и GAP, а решение по режиму принимает технолог.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#5b4f7a"/></marker>
+          <marker id="arrow-ink" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#19003c"/></marker>
+        </defs>
+
+        <rect width="100%" height="100%" fill="#ffffff"/>
+
+        <!-- ===== Connectors (drawn before nodes) ===== -->
+        <!-- main path -->
+        <line x1="260" y1="180" x2="298" y2="180" stroke="#19003c" stroke-width="1.4" marker-end="url(#arrow-ink)"/>
+        <line x1="500" y1="180" x2="538" y2="180" stroke="#19003c" stroke-width="1.4" marker-end="url(#arrow-ink)"/>
+        <line x1="740" y1="180" x2="778" y2="180" stroke="#19003c" stroke-width="1.4" marker-end="url(#arrow-ink)"/>
+        <line x1="980" y1="180" x2="1018" y2="180" stroke="#19003c" stroke-width="1.4" marker-end="url(#arrow-ink)"/>
+        <line x1="1120" y1="212" x2="1120" y2="386" stroke="#19003c" stroke-width="1.4" marker-end="url(#arrow-ink)"/>
+        <line x1="1020" y1="420" x2="982" y2="420" stroke="#19003c" stroke-width="1.4" marker-end="url(#arrow-ink)"/>
+        <line x1="780" y1="420" x2="742" y2="420" stroke="#19003c" stroke-width="1.4" marker-end="url(#arrow-ink)"/>
+        <line x1="640" y1="484" x2="640" y2="558" stroke="#19003c" stroke-width="1.4" marker-end="url(#arrow-ink)"/>
+
+        <!-- return: engineer sends back with a comment -> full recalculation from hypotheses -->
+        <path d="M540,420 L448,420 Q440,420 440,412 L440,308 Q440,300 448,300 L632,300 Q640,300 640,292 L640,214"
+              fill="none" stroke="#5b4f7a" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+
+        <!-- shortcut: controls or water changed -> GAP with the previous sets (hop over the return line) -->
+        <path d="M400,244 L400,322 Q400,330 408,330 L432,330 A8,8 0 0 1 448,330 L872,330 Q880,330 880,338 L880,386"
+              fill="none" stroke="#5b4f7a" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+
+        <!-- ===== Arrow labels (masked, 6–10px gap) ===== -->
+        <rect x="508" y="158" width="24" height="12" rx="2" fill="#ffffff"/>
+        <text x="520" y="168" class="lbl" text-anchor="middle">ДА</text>
+
+        <rect x="506" y="280" width="68" height="12" rx="2" fill="#ffffff"/>
+        <text x="540" y="290" class="lbl" text-anchor="middle">ВЕРНУТЬ</text>
+
+        <rect x="704" y="310" width="112" height="12" rx="2" fill="#ffffff"/>
+        <text x="760" y="320" class="lbl" text-anchor="middle">РЕЖИМЫ · ВОДА</text>
+
+        <rect x="650" y="508" width="76" height="12" rx="2" fill="#ffffff"/>
+        <text x="688" y="518" class="lbl" text-anchor="middle">УТВЕРДИТЬ</text>
+
+        <!-- ===== Nodes ===== -->
+        <!-- N1 start: hourly tick (workflow) -->
+        <rect x="60" y="148" width="200" height="64" rx="32" fill="#ffffff"/>
+        <rect x="60" y="148" width="200" height="64" rx="32" fill="#ffffff" stroke="#19003c" stroke-width="1.2"/>
+        <text x="160" y="176" class="name" text-anchor="middle">Ежечасный такт</text>
+        <text x="160" y="197" class="sub" text-anchor="middle">проверка замеров</text>
+
+        <!-- N2 decision: new event? -->
+        <text x="400" y="100" class="note" text-anchor="middle">нет изменений — только баланс</text>
+        <polygon points="400,116 500,180 400,244 300,180" fill="#ffffff" stroke="#19003c" stroke-width="1.2"/>
+        <text x="400" y="176" class="name" text-anchor="middle">Новое</text>
+        <text x="400" y="196" class="name" text-anchor="middle">событие?</text>
+
+        <!-- N3 LLM hypotheses (focal) -->
+        <rect x="540" y="148" width="200" height="64" rx="6" fill="#ffffff"/>
+        <rect x="540" y="148" width="200" height="64" rx="6" fill="rgba(65,0,140,0.08)" stroke="#41008c" stroke-width="1.6"/>
+        <text x="640" y="176" class="name" text-anchor="middle">Гипотезы</text>
+        <text x="640" y="197" class="sub" text-anchor="middle">LLM · GPT-OSS 120B</text>
+
+        <!-- N4 PROSPER (external tool) -->
+        <rect x="780" y="148" width="200" height="64" rx="6" fill="#ffffff"/>
+        <rect x="780" y="148" width="200" height="64" rx="6" fill="rgba(25,0,60,0.03)" stroke="rgba(25,0,60,0.30)" stroke-width="1.2"/>
+        <text x="880" y="176" class="name" text-anchor="middle">PROSPER</text>
+        <text x="880" y="197" class="sub" text-anchor="middle">согласие с давлением</text>
+
+        <!-- N5 LLM measure sets + tool choice (focal) -->
+        <rect x="1020" y="148" width="200" height="64" rx="6" fill="#ffffff"/>
+        <rect x="1020" y="148" width="200" height="64" rx="6" fill="rgba(65,0,140,0.08)" stroke="#41008c" stroke-width="1.6"/>
+        <text x="1120" y="176" class="name" text-anchor="middle">Наборы мероприятий</text>
+        <text x="1120" y="197" class="sub" text-anchor="middle">LLM · выбор инструмента</text>
+
+        <!-- N6 code validator -->
+        <rect x="1020" y="388" width="200" height="64" rx="6" fill="#ffffff" stroke="#19003c" stroke-width="1.2"/>
+        <text x="1120" y="416" class="name" text-anchor="middle">Валидатор кода</text>
+        <text x="1120" y="437" class="sub" text-anchor="middle">реестр · остановки</text>
+
+        <!-- N7 GAP (external tool) -->
+        <rect x="780" y="388" width="200" height="64" rx="6" fill="#ffffff"/>
+        <rect x="780" y="388" width="200" height="64" rx="6" fill="rgba(25,0,60,0.03)" stroke="rgba(25,0,60,0.30)" stroke-width="1.2"/>
+        <text x="880" y="416" class="name" text-anchor="middle">GAP</text>
+        <text x="880" y="437" class="sub" text-anchor="middle">режимы · ограничения</text>
+        <text x="880" y="472" class="note" text-anchor="middle">не прошли → вся регулирующая способность</text>
+
+        <!-- N8 human decision -->
+        <polygon points="640,356 740,420 640,484 540,420" fill="#ffffff"/>
+        <polygon points="640,356 740,420 640,484 540,420" fill="rgba(91,79,122,0.10)" stroke="#8a80a3" stroke-width="1.2"/>
+        <text x="640" y="416" class="name" text-anchor="middle">Решение</text>
+        <text x="640" y="436" class="name" text-anchor="middle">технолога</text>
+
+        <!-- N9 end: local approval registry -->
+        <rect x="540" y="560" width="200" height="64" rx="32" fill="#ffffff"/>
+        <rect x="540" y="560" width="200" height="64" rx="32" fill="rgba(25,0,60,0.05)" stroke="#5b4f7a" stroke-width="1.2"/>
+        <text x="640" y="588" class="name" text-anchor="middle">Реестр утверждений</text>
+        <text x="640" y="609" class="sub" text-anchor="middle">локальная запись</text>
+
+        <!-- ===== Callouts (2 max) ===== -->
+        <text class="call"><tspan x="60" y="340">Контур компании:</tspan><tspan x="60" y="362">LLM — GPT-OSS 120B</tspan><tspan x="60" y="384">на LM Studio;</tspan><tspan x="60" y="406">облачные модели</tspan><tspan x="60" y="428">запрещены</tspan></text>
+        <text class="call"><tspan x="800" y="536">Потолки такта и суток ($1.5, 20 вызовов LLM):</tspan><tspan x="800" y="558">после потолка или повторного сбоя агент стоит;</tspan><tspan x="800" y="580">очередь — моделист 2 ч → руководитель 4 ч</tspan></text>
+
+        <!-- ===== Legend strip ===== -->
+        <line x1="40" y1="652" x2="1240" y2="652" stroke="rgba(25,0,60,0.12)" stroke-width="0.8"/>
+        <rect x="40" y="672" width="20" height="12" rx="2" fill="rgba(65,0,140,0.08)" stroke="#41008c" stroke-width="1.4"/>
+        <text x="68" y="682" class="leg">LLM (агент)</text>
+        <rect x="200" y="672" width="20" height="12" rx="2" fill="#ffffff" stroke="#19003c" stroke-width="1.2"/>
+        <text x="228" y="682" class="leg">код / workflow</text>
+        <rect x="380" y="672" width="20" height="12" rx="2" fill="rgba(25,0,60,0.03)" stroke="rgba(25,0,60,0.30)" stroke-width="1.2"/>
+        <text x="408" y="682" class="leg">PetEx</text>
+        <rect x="500" y="672" width="20" height="12" rx="2" fill="rgba(91,79,122,0.10)" stroke="#8a80a3" stroke-width="1.2"/>
+        <text x="528" y="682" class="leg">человек</text>
+        <line x1="640" y1="678" x2="672" y2="678" stroke="#5b4f7a" stroke-width="1.2" stroke-dasharray="5,4"/>
+        <text x="680" y="682" class="leg">обход / возврат</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>
