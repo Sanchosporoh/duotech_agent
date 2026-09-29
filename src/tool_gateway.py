@@ -199,7 +199,8 @@ def ask_codex(root,prompt,schema,cwd):
                 answer,used=real(prompt,schema,cwd,model=model,with_usage=True)
                 meta=dict(used,model='Codex CLI · '+(model or 'модель аккаунта'),**codex_cost(root,model,used))
             else:
-                answer,meta=llm_client.ask(prompt,schema,model,url,llm_client.api_key() if name=='openrouter' else None)
+                timeout=llm_client.policy(Path(root)/'config'/'llm_policy.json').get('local_timeout_seconds') if name=='lmstudio' else None
+                answer,meta=llm_client.ask(prompt,schema,model,url,llm_client.api_key() if name=='openrouter' else None,timeout=timeout)
     except Exception:
         _record('llm',started,False,prompt_chars=len(prompt));raise
     _record('llm',started,True,prompt_chars=len(prompt),**{k:v for k,v in (meta if real_llm() else {}).items() if k!='seconds'})

@@ -1,0 +1,204 @@
+[
+ {
+  "model": "codex (эталон, настоящий прогон)",
+  "task": "гипотезы",
+  "case": "hyp-06",
+  "error": null,
+  "valid": true,
+  "count": 5,
+  "unknown_wells": [],
+  "key_well_first": true,
+  "key_well_any": true,
+  "first": "Снижение эффективности ЭЦН W_BEL_27_TLBB"
+ },
+ {
+  "model": "codex (эталон, настоящий прогон)",
+  "task": "гипотезы",
+  "case": "hyp-15",
+  "error": null,
+  "valid": true,
+  "count": 6,
+  "unknown_wells": [],
+  "key_well_first": true,
+  "key_well_any": true,
+  "first": "Остановка или потеря привода W_BEL_22_TLBB"
+ },
+ {
+  "model": "codex (эталон, настоящий прогон)",
+  "task": "гипотезы",
+  "case": "hyp-18",
+  "error": null,
+  "valid": true,
+  "count": 5,
+  "unknown_wells": [],
+  "key_well_first": true,
+  "key_well_any": true,
+  "first": "Остановка или потеря подачи W_BEL_22_TLBB"
+ },
+ {
+  "model": "codex (эталон, настоящий прогон)",
+  "task": "наборы",
+  "case": "sets-06",
+  "error": null,
+  "valid": true,
+  "sets": 3,
+  "outside_register": [],
+  "best_register_coverage": 1.3,
+  "wells": [
+   [
+    "W_BEL_13_TLBB",
+    "W_BEL_12_TLBB",
+    "W_BEL_23_TLBB",
+    "W_BEL_29_TLBB",
+    "W_BEL_31_TLBB"
+   ],
+   [
+    "W_BEL_12_TLBB",
+    "W_BEL_23_TLBB",
+    "W_BEL_29_TLBB",
+    "W_BEL_30_TLBB",
+    "W_BEL_31_TLBB",
+    "W_BEL_14_TLBB",
+    "W_BEL_24_TLBB",
+    "W_BEL_55_TLBB"
+   ],
+   [
+    "W_BEL_13_TLBB",
+    "W_BEL_12_TLBB",
+    "W_BEL_23_TLBB",
+    "W_BEL_30_TLBB",
+    "W_BEL_31_TLBB",
+    "W_BEL_24_TLBB"
+   ]
+  ]
+ },
+ {
+  "model": "codex (эталон, настоящий прогон)",
+  "task": "наборы",
+  "case": "sets-15",
+  "error": null,
+  "valid": true,
+  "sets": 3,
+  "outside_register": [],
+  "best_register_coverage": 0.86,
+  "wells": [
+   [
+    "W_BEL_13_TLBB"
+   ],
+   [
+    "W_BEL_12_TLBB",
+    "W_BEL_13_TLBB",
+    "W_BEL_23_TLBB",
+    "W_BEL_29_TLBB",
+    "W_BEL_30_TLBB",
+    "W_BEL_31_TLBB",
+    "W_BEL_14_TLBB",
+    "W_BEL_24_TLBB",
+    "W_BEL_55_TLBB"
+   ],
+   [
+    "W_BEL_12_TLBB",
+    "W_BEL_13_TLBB",
+    "W_BEL_23_TLBB",
+    "W_BEL_30_TLBB",
+    "W_BEL_31_TLBB"
+   ]
+  ]
+ },
+ {
+  "model": "codex (эталон, настоящий прогон)",
+  "task": "наборы",
+  "case": "sets-18",
+  "error": null,
+  "valid": true,
+  "sets": 3,
+  "outside_register": [],
+  "best_register_coverage": 0.26,
+  "wells": [
+   [
+    "W_BEL_13_TLBB"
+   ],
+   [
+    "W_BEL_12_TLBB",
+    "W_BEL_30_TLBB",
+    "W_BEL_31_TLBB",
+    "W_BEL_24_TLBB",
+    "W_BEL_55_TLBB"
+   ],
+   [
+    "W_BEL_13_TLBB",
+    "W_BEL_12_TLBB",
+    "W_BEL_31_TLBB"
+   ]
+  ]
+ },
+ {
+  "task": "гипотезы",
+  "case": "hyp-06",
+  "model": "openai/gpt-oss-120b",
+  "error": "HTTPConnectionPool(host='10.9.0.88', port=1234): Read timed out. (read timeout=300.0)",
+  "valid": false
+ },
+ {
+  "task": "гипотезы",
+  "case": "hyp-15",
+  "model": "openai/gpt-oss-120b",
+  "error": "HTTPConnectionPool(host='10.9.0.88', port=1234): Read timed out. (read timeout=300.0)",
+  "valid": false
+ },
+ {
+  "task": "гипотезы",
+  "case": "hyp-18",
+  "model": "openai/gpt-oss-120b",
+  "error": "HTTPConnectionPool(host='10.9.0.88', port=1234): Read timed out. (read timeout=300.0)",
+  "valid": false
+ },
+ {
+  "task": "выбор инструмента",
+  "case": "sets-06",
+  "model": "openai/gpt-oss-120b",
+  "error": "HTTPConnectionPool(host='10.9.0.88', port=1234): Read timed out. (read timeout=300.0)",
+  "valid": false,
+  "tool": null,
+  "tool_reason": null
+ },
+ {
+  "task": "наборы",
+  "case": "sets-06",
+  "model": "openai/gpt-oss-120b",
+  "error": "HTTPConnectionPool(host='10.9.0.88', port=1234): Read timed out. (read timeout=300.0)",
+  "valid": false
+ },
+ {
+  "task": "выбор инструмента",
+  "case": "sets-15",
+  "model": "openai/gpt-oss-120b",
+  "error": "HTTPConnectionPool(host='10.9.0.88', port=1234): Read timed out. (read timeout=300.0)",
+  "valid": false,
+  "tool": null,
+  "tool_reason": null
+ },
+ {
+  "task": "наборы",
+  "case": "sets-15",
+  "model": "openai/gpt-oss-120b",
+  "error": "HTTPConnectionPool(host='10.9.0.88', port=1234): Read timed out. (read timeout=300.0)",
+  "valid": false
+ },
+ {
+  "task": "выбор инструмента",
+  "case": "sets-18",
+  "model": "openai/gpt-oss-120b",
+  "error": "HTTPConnectionPool(host='10.9.0.88', port=1234): Read timed out. (read timeout=300.0)",
+  "valid": false,
+  "tool": null,
+  "tool_reason": null
+ },
+ {
+  "task": "наборы",
+  "case": "sets-18",
+  "model": "openai/gpt-oss-120b",
+  "error": "HTTPConnectionPool(host='10.9.0.88', port=1234): Read timed out. (read timeout=300.0)",
+  "valid": false
+ }
+]

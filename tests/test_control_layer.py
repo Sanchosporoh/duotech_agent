@@ -260,7 +260,7 @@ class MoneyAndTimeCeilingTests(unittest.TestCase):
             root=make_project(directory)
             allow_providers(root,'openrouter')
             set_limits(root,max_llm_cost_usd_per_day=0.05)
-            def paid(prompt,schema,model,url,key=None):
+            def paid(prompt,schema,model,url,key=None,timeout=None):
                 return tool_stubs.codex(prompt,schema),{'model':model,'seconds':1.,'prompt_tokens':20000,'completion_tokens':500,'cost_usd':0.03}
             with patch.object(llm_client,'ask',side_effect=paid), patch.object(llm_client,'api_key',return_value='k'):
                 run=run_until(root,6)

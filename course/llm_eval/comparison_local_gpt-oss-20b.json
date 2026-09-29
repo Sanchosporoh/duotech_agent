@@ -1,0 +1,312 @@
+[
+ {
+  "model": "codex (эталон, настоящий прогон)",
+  "task": "гипотезы",
+  "case": "hyp-06",
+  "error": null,
+  "valid": true,
+  "count": 5,
+  "unknown_wells": [],
+  "key_well_first": true,
+  "key_well_any": true,
+  "first": "Снижение эффективности ЭЦН W_BEL_27_TLBB"
+ },
+ {
+  "model": "codex (эталон, настоящий прогон)",
+  "task": "гипотезы",
+  "case": "hyp-15",
+  "error": null,
+  "valid": true,
+  "count": 6,
+  "unknown_wells": [],
+  "key_well_first": true,
+  "key_well_any": true,
+  "first": "Остановка или потеря привода W_BEL_22_TLBB"
+ },
+ {
+  "model": "codex (эталон, настоящий прогон)",
+  "task": "гипотезы",
+  "case": "hyp-18",
+  "error": null,
+  "valid": true,
+  "count": 5,
+  "unknown_wells": [],
+  "key_well_first": true,
+  "key_well_any": true,
+  "first": "Остановка или потеря подачи W_BEL_22_TLBB"
+ },
+ {
+  "model": "codex (эталон, настоящий прогон)",
+  "task": "наборы",
+  "case": "sets-06",
+  "error": null,
+  "valid": true,
+  "sets": 3,
+  "outside_register": [],
+  "best_register_coverage": 1.3,
+  "wells": [
+   [
+    "W_BEL_13_TLBB",
+    "W_BEL_12_TLBB",
+    "W_BEL_23_TLBB",
+    "W_BEL_29_TLBB",
+    "W_BEL_31_TLBB"
+   ],
+   [
+    "W_BEL_12_TLBB",
+    "W_BEL_23_TLBB",
+    "W_BEL_29_TLBB",
+    "W_BEL_30_TLBB",
+    "W_BEL_31_TLBB",
+    "W_BEL_14_TLBB",
+    "W_BEL_24_TLBB",
+    "W_BEL_55_TLBB"
+   ],
+   [
+    "W_BEL_13_TLBB",
+    "W_BEL_12_TLBB",
+    "W_BEL_23_TLBB",
+    "W_BEL_30_TLBB",
+    "W_BEL_31_TLBB",
+    "W_BEL_24_TLBB"
+   ]
+  ]
+ },
+ {
+  "model": "codex (эталон, настоящий прогон)",
+  "task": "наборы",
+  "case": "sets-15",
+  "error": null,
+  "valid": true,
+  "sets": 3,
+  "outside_register": [],
+  "best_register_coverage": 0.86,
+  "wells": [
+   [
+    "W_BEL_13_TLBB"
+   ],
+   [
+    "W_BEL_12_TLBB",
+    "W_BEL_13_TLBB",
+    "W_BEL_23_TLBB",
+    "W_BEL_29_TLBB",
+    "W_BEL_30_TLBB",
+    "W_BEL_31_TLBB",
+    "W_BEL_14_TLBB",
+    "W_BEL_24_TLBB",
+    "W_BEL_55_TLBB"
+   ],
+   [
+    "W_BEL_12_TLBB",
+    "W_BEL_13_TLBB",
+    "W_BEL_23_TLBB",
+    "W_BEL_30_TLBB",
+    "W_BEL_31_TLBB"
+   ]
+  ]
+ },
+ {
+  "model": "codex (эталон, настоящий прогон)",
+  "task": "наборы",
+  "case": "sets-18",
+  "error": null,
+  "valid": true,
+  "sets": 3,
+  "outside_register": [],
+  "best_register_coverage": 0.26,
+  "wells": [
+   [
+    "W_BEL_13_TLBB"
+   ],
+   [
+    "W_BEL_12_TLBB",
+    "W_BEL_30_TLBB",
+    "W_BEL_31_TLBB",
+    "W_BEL_24_TLBB",
+    "W_BEL_55_TLBB"
+   ],
+   [
+    "W_BEL_13_TLBB",
+    "W_BEL_12_TLBB",
+    "W_BEL_31_TLBB"
+   ]
+  ]
+ },
+ {
+  "task": "гипотезы",
+  "case": "hyp-06",
+  "model": "openai/gpt-oss-20b",
+  "seconds": 16.42,
+  "prompt_tokens": 9255,
+  "completion_tokens": 688,
+  "cost_usd": null,
+  "error": null,
+  "valid": true,
+  "count": 4,
+  "unknown_wells": [],
+  "key_well_first": false,
+  "key_well_any": true,
+  "first": "Внутренний сбой сепаратора (протечка/засор)"
+ },
+ {
+  "task": "гипотезы",
+  "case": "hyp-15",
+  "model": "openai/gpt-oss-20b",
+  "seconds": 21.68,
+  "prompt_tokens": 17065,
+  "completion_tokens": 789,
+  "cost_usd": null,
+  "error": null,
+  "valid": true,
+  "count": 5,
+  "unknown_wells": [],
+  "key_well_first": false,
+  "key_well_any": false,
+  "first": "Frequency‑induced separation efficiency drop"
+ },
+ {
+  "task": "гипотезы",
+  "case": "hyp-18",
+  "model": "openai/gpt-oss-20b",
+  "seconds": 27.25,
+  "prompt_tokens": 19797,
+  "completion_tokens": 1055,
+  "cost_usd": null,
+  "error": null,
+  "valid": true,
+  "count": 6,
+  "unknown_wells": [],
+  "key_well_first": false,
+  "key_well_any": false,
+  "first": "Separator mechanical blockage"
+ },
+ {
+  "task": "выбор инструмента",
+  "case": "sets-06",
+  "model": "openai/gpt-oss-20b",
+  "seconds": 21.57,
+  "prompt_tokens": 14072,
+  "completion_tokens": 869,
+  "cost_usd": null,
+  "error": null,
+  "valid": true,
+  "tool": "calculate_sets",
+  "tool_reason": "Одной скважиной недостаточно для достижения нужного прироста нефти; требуется комбинация мероприятий. Инструмент calculate_sets позволяет оценить до трёх оптимальных наборов действий, учитывая ограничения по давлению, воде и бюджету."
+ },
+ {
+  "task": "наборы",
+  "case": "sets-06",
+  "model": "openai/gpt-oss-20b",
+  "seconds": 20.77,
+  "prompt_tokens": 14049,
+  "completion_tokens": 805,
+  "cost_usd": null,
+  "error": null,
+  "valid": true,
+  "sets": 3,
+  "outside_register": [],
+  "best_register_coverage": 0.7,
+  "wells": [
+   [
+    "W_BEL_13_TLBB"
+   ],
+   [
+    "W_BEL_12_TLBB",
+    "W_BEL_23_TLBB"
+   ],
+   [
+    "W_BEL_13_TLBB",
+    "W_BEL_12_TLBB",
+    "W_BEL_28_TLBB"
+   ]
+  ]
+ },
+ {
+  "task": "выбор инструмента",
+  "case": "sets-15",
+  "model": "openai/gpt-oss-20b",
+  "seconds": 26.79,
+  "prompt_tokens": 21987,
+  "completion_tokens": 889,
+  "cost_usd": null,
+  "error": null,
+  "valid": true,
+  "tool": "calculate_sets",
+  "tool_reason": "Возможности по отдельным скважинам позволяют получить максимум около 4 т/сут. Чтобы достичь требуемого прироста в 26 т/сут и учесть ограничения сети (минимальный FHBP = 80 бар, лимит воды +1 м³/сут), необходимо комбинировать несколько скважин. Инструмент calculate_sets позволяет оценить до трёх наборов мероприятий с оптимизацией режимов, влияния на сеть и соблюдением ограничений."
+ },
+ {
+  "task": "наборы",
+  "case": "sets-15",
+  "model": "openai/gpt-oss-20b",
+  "seconds": 36.84,
+  "prompt_tokens": 21964,
+  "completion_tokens": 1485,
+  "cost_usd": null,
+  "error": null,
+  "valid": true,
+  "sets": 3,
+  "outside_register": [],
+  "best_register_coverage": 0.8,
+  "wells": [
+   [
+    "W_BEL_13_TLBB"
+   ],
+   [
+    "W_BEL_13_TLBB",
+    "W_BEL_12_TLBB",
+    "W_BEL_23_TLBB",
+    "W_BEL_28_TLBB",
+    "W_BEL_29_TLBB",
+    "W_BEL_30_TLBB",
+    "W_BEL_31_TLBB"
+   ],
+   [
+    "W_BEL_14_TLBB",
+    "W_BEL_24_TLBB",
+    "W_BEL_26_TLBB",
+    "W_BEL_55_TLBB"
+   ]
+  ]
+ },
+ {
+  "task": "выбор инструмента",
+  "case": "sets-18",
+  "model": "openai/gpt-oss-20b",
+  "seconds": 16.63,
+  "prompt_tokens": 24374,
+  "completion_tokens": 221,
+  "cost_usd": null,
+  "error": null,
+  "valid": true,
+  "tool": "screen_single_wells",
+  "tool_reason": "В реестре возможностей есть скважина W_BEL_13_TLBB с потенциальным приростом нефти 4.1 т/сут, что превышает текущий недобор в 4.04 т/сут. При учёте ограничений (минимальный FHBP 80 бар, вода +1 м³/сут) и высокого уровня доверия (0.8, high), одна скважина может покрыть требуемую компенсацию без необходимости комбинирования нескольких мероприятий."
+ },
+ {
+  "task": "наборы",
+  "case": "sets-18",
+  "model": "openai/gpt-oss-20b",
+  "seconds": 32.03,
+  "prompt_tokens": 24351,
+  "completion_tokens": 1159,
+  "cost_usd": null,
+  "error": null,
+  "valid": true,
+  "sets": 3,
+  "outside_register": [],
+  "best_register_coverage": 0.22,
+  "wells": [
+   [
+    "W_BEL_13_TLBB"
+   ],
+   [
+    "W_BEL_12_TLBB",
+    "W_BEL_14_TLBB"
+   ],
+   [
+    "W_BEL_13_TLBB",
+    "W_BEL_23_TLBB",
+    "W_BEL_28_TLBB"
+   ]
+  ]
+ }
+]
