@@ -20,6 +20,13 @@ def calls(run):
     return run["tools"].get("llm_calls",0),run["tools"].get("gap_runs",0)
 
 
+def allow_providers(root,*names):
+    """Cost accounting tests use cloud providers that the contour policy forbids by default."""
+    path=root/'config/llm_policy.json'
+    policy=json.loads(path.read_text(encoding='utf-8'));policy['allowed_providers']=list(names)
+    path.write_text(json.dumps(policy,ensure_ascii=False),encoding='utf-8')
+
+
 def run_until(root,hour):
     result=None
     for _ in range(hour+1):result=cycle_service.tick(root)
@@ -44,6 +51,7 @@ class LimitTests(unittest.TestCase):
         from src import tool_gateway, llm_client
         with tempfile.TemporaryDirectory() as directory:
             root=make_project(directory)
+            allow_providers(root,'openrouter')
             meta={'model':'openai/gpt-4.1','seconds':1.0,'prompt_tokens':1000,'completion_tokens':50,'cost_usd':0.0024}
             with patch.dict(os.environ,{'AGENT_TOOL_BACKEND':'petex','AGENT_LLM':'openrouter:openai/gpt-4.1'}),                  patch.object(llm_client,'ask',return_value=({'ok':True},meta)), patch.object(llm_client,'api_key',return_value='k'):
                 tool_gateway.start_tick(root)
@@ -250,6 +258,7 @@ class MoneyAndTimeCeilingTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory, \
              patch.dict(os.environ,{'AGENT_TOOL_BACKEND':'stub','AGENT_REAL_LLM':'1','AGENT_LLM':'openrouter:openai/gpt-4.1'}):
             root=make_project(directory)
+            allow_providers(root,'openrouter')
             set_limits(root,max_llm_cost_usd_per_day=0.05)
             def paid(prompt,schema,model,url,key=None):
                 return tool_stubs.codex(prompt,schema),{'model':model,'seconds':1.,'prompt_tokens':20000,'completion_tokens':500,'cost_usd':0.03}
@@ -337,7 +346,7 @@ class CodexCostTests(unittest.TestCase):
     def test_pinned_codex_model_is_journaled_with_price_list_cost(self):
         from src import tool_gateway, codex_cli
         with tempfile.TemporaryDirectory() as directory:
-            root=make_project(directory)
+            root=make_project(directory);allow_providers(root,'codex')
             with patch.dict(os.environ,{'AGENT_TOOL_BACKEND':'petex','AGENT_LLM':'codex:gpt-6-sol'}), \
                  patch.object(codex_cli,'ask_codex',return_value=({'ok':True},codex_cli.usage(self.EVENTS))):
                 tool_gateway.start_tick(root)
@@ -395,3 +404,22 @@ class RepeatedFailureHoldTests(unittest.TestCase):
                 held=cycle_service.tick(root)
         self.assertEqual(held['status'],'held')
         self.assertEqual(held['tools']['llm_calls'],0)
+
+
+
+class ContourPolicyTests(unittest.TestCase):
+    def test_cloud_provider_is_refused_before_any_data_leaves(self):
+        from src import tool_gateway, llm_client
+        with tempfile.TemporaryDirectory() as directory:
+            root=make_project(directory)
+            with patch.dict(os.environ,{'AGENT_TOOL_BACKEND':'petex','AGENT_LLM':'openrouter:openai/gpt-4.1'}),                  patch.object(llm_client,'ask') as sent:
+                with self.assertRaises(RuntimeError) as caught:
+                    tool_gateway.ask_codex(root,'x',{},directory)
+        sent.assert_not_called()
+        self.assertIn('запрещён политикой контура',str(caught.exception))
+
+    def test_default_model_is_the_local_server(self):
+        from src import llm_client
+        with patch.dict(os.environ,{},clear=False):
+            os.environ.pop('AGENT_LLM',None)
+            self.assertEqual(llm_client.provider()[0],'lmstudio')

@@ -20,9 +20,18 @@ import requests
 OPENROUTER_URL='https://openrouter.ai/api/v1'
 
 
+POLICY=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'config','llm_policy.json')
+
+
+def policy(path=POLICY):
+    """Which providers the company contour allows and the default model (config/llm_policy.json)."""
+    if not os.path.exists(path):return {}
+    with open(path,encoding='utf-8') as stream:return json.load(stream)
+
+
 def provider():
     """('codex', None, None) or (name, model, base_url)."""
-    value=os.environ.get('AGENT_LLM','codex').strip() or 'codex'
+    value=os.environ.get('AGENT_LLM','').strip() or policy().get('default') or 'codex'
     if value=='codex':return 'codex',None,None
     if value.startswith('codex:') and value[6:].strip():return 'codex',value[6:].strip(),None
     name,_,rest=value.partition(':')
@@ -57,7 +66,7 @@ def _strict(schema):
     return schema
 
 
-def ask(prompt,schema,model,base_url,key=None,timeout=180):
+def ask(prompt,schema,model,base_url,key=None,timeout=None):
     """Return (answer, meta). meta: model, seconds, prompt/completion tokens, cost in USD (if reported)."""
     headers={'Content-Type':'application/json'}
     if key:headers['Authorization']='Bearer '+key
@@ -65,6 +74,8 @@ def ask(prompt,schema,model,base_url,key=None,timeout=180):
           'response_format':{'type':'json_schema','json_schema':{'name':'answer','strict':True,'schema':_strict(schema)}},
           'usage':{'include':True}}
     started=time.monotonic()
+    # A local model on the company server is slower than a cloud one: the limit is set by LLM_TIMEOUT_SECONDS.
+    timeout=timeout or float(os.environ.get('LLM_TIMEOUT_SECONDS',180))
     response=requests.post(base_url+'/chat/completions',headers=headers,json=body,timeout=timeout)
     seconds=round(time.monotonic()-started,2)
     if response.status_code!=200:

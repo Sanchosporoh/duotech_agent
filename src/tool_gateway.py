@@ -190,6 +190,10 @@ def ask_codex(root,prompt,schema,cwd):
         else:
             from src import llm_client
             name,model,url=llm_client.provider()
+            allowed=llm_client.policy(Path(root)/'config'/'llm_policy.json').get('allowed_providers')
+            if allowed is not None and name not in allowed:
+                raise RuntimeError(f'LLM-провайдер «{name}» запрещён политикой контура (config/llm_policy.json): '
+                                   'производственные данные не покидают сеть компании. Разрешено: '+', '.join(allowed))
             if name=='codex':
                 from src.codex_cli import ask_codex as real
                 answer,used=real(prompt,schema,cwd,model=model,with_usage=True)

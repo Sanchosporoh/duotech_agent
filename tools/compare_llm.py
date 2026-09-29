@@ -65,6 +65,10 @@ def main():
     parser.add_argument('--label',help='suffix of the result files, e.g. local')
     args=parser.parse_args()
     url=args.base_url.rstrip('/') if args.base_url else llm_client.OPENROUTER_URL
+    allowed=llm_client.policy().get('allowed_providers')
+    if not args.base_url and allowed is not None and 'openrouter' not in allowed:
+        print('OpenRouter запрещён политикой контура (config/llm_policy.json): производственные данные не покидают сеть компании. '
+              'Укажите --base-url сервера LM Studio.');return 1
     key=None if args.base_url else llm_client.api_key()
     if not args.base_url and not key:
         print('Нет ключа OPENROUTER_API_KEY. Задайте его в PowerShell:\n'
