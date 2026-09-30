@@ -1,5 +1,5 @@
 // Stakeholder deck (course passport Р8). Every number comes from course/passport.md.
-// Needs pptxgenjs (npm install pptxgenjs in any folder, run from there) and the NS Digital skill assets.
+// Needs pptxgenjs (npm install pptxgenjs in any folder, then NODE_PATH=<folder>/node_modules) and the NS Digital skill assets.
 // Run: node tools/build_deck.js course/deck/agent_deck.pptx
 const PptxGenJS = require('pptxgenjs');
 const path = require('path');
@@ -15,7 +15,8 @@ pptx.title = 'Агент контроля добычи куста';
 
 const C = { purple: '41008C', navy: '19003C', green: '00DD00', tint: 'CCF6C6', orange: 'ED7F34',
   gray: 'A7A6A6', card: 'F2F2F2', card2: 'E7E7E7', white: 'FFFFFF', lpurple: '9C78C3' };
-const F = 'Golos Text', FB = 'Golos Text DemiBold';
+// Arial: the NS brand font for office documents; Golos Text is often missing and breaks line wrapping.
+const F = 'Arial', FB = 'Arial';
 
 function chrome(slide, page) {
   slide.background = { color: C.white };
@@ -161,9 +162,9 @@ if (!ONLY || ONLY==='5') {
 // ---------- 6. Rollout ----------
 if (!ONLY || ONLY==='6') {
   const s = pptx.addSlide(); chrome(s, 6);
-  header(s, 'Запуск', 'Пилот: один куст BEL_PROD (16 скважин), 6 недель, без исполнения уставок');
+  header(s, 'Запуск', 'Пилот 01.12.2026–25.01.2027: один куст BEL_PROD, инженер-моделист и технолог');
   const stages = [
-    ['SHADOW', '2 недели', 'Агент считает по реальным данным, инженер работает как раньше, решения сравниваются', '≥ 10 инцидентов; ≥ 80 % с готовым предложением; главная причина совпала в ≥ 70 %; 0 нарушений ограничений'],
+    ['SHADOW', '2 недели', 'Агент считает по реальным данным, инженер работает как раньше, решения сравниваются', '≥ 10 инцидентов; 80 % — готовое предложение; причина совпала в 70 %; 0 нарушений ограничений'],
     ['HITL', '4 недели', 'Предложения идут технологу на утверждение, затем согласование с цехом', '≥ 20 утверждённых; ≥ 70 % без переделки; факт в пределах прогноза ±5 %'],
     ['AUTONOMOUS', 'ограниченный', 'Агент ведёт контур до предложения и ставит задачу после утверждения; режим решает технолог', 'Откат в HITL: расхождение с прогнозом > 10 % дважды за неделю'],
   ];
@@ -187,7 +188,7 @@ if (!ONLY || ONLY==='7') {
   header(s, 'Стоимость', 'Успешный результат почти бесплатен — ожидание стоит ≈ 100 тыс. руб на инцидент');
   const left = [
     ['≈ 100 тыс. руб', 'сохранённой нефти на инцидент: ≈ 5 т, время до действия 18 ч → ≈ 9.5 ч'],
-    ['0 руб', 'LLM в контуре: сервер LM Studio и лицензия PetEx уже есть'],
+    ['0 внешних', 'LLM на своём сервере: ~5.6 ч работы в месяц (< 1 % загрузки); API стоил бы $0.17–2.35 в месяц, но данные не покидают контур'],
     ['≈ 20 руб', 'стоимость успешного результата облачной LLM для сравнения ($0.23, 5 из 5) — облако запрещено'],
   ];
   left.forEach(([big, text], i) => {
