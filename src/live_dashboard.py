@@ -258,6 +258,14 @@ def render(root):
                     for identity in covered:
                         incident_lifecycle.record_decision(path,identity,status,comment,None,'Нет проверенного предложения')
                     st.rerun()
+            action=next((a for a in reversed(live_execution.load(root)['actions']) if selected in a.get('incident_ids',[])),None)
+            if action and life['stage']=='approved_for_execution':
+                text='Задача Битрикс24: '+live_execution.external_text(action.get('external'))
+                if (action.get('external') or {}).get('status')=='error':
+                    st.error(text)
+                    if st.button('Повторить отправку в Битрикс24'):
+                        live_execution.send_external(root,action['approval_id']);st.rerun()
+                else:st.success(text)
             st.dataframe(pd.DataFrame(incident_lifecycle.version_rows(life)),hide_index=True)
     with st.expander('Журнал запусков агента'):
         runs=cycle_service.recent_runs(root)

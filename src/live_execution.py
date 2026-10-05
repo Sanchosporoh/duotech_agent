@@ -14,7 +14,14 @@ def approval_rows(root):
     return [{'Инцидент':a['incident_id'],'Мероприятие':a['proposal']['title'],
              'Утверждено':f"{a['approved_hour']:02d}:00",'Начало эффекта':f"{a['approved_hour']+1:02d}:00",
              'Ожидаемый недобор, т':a['proposal'].get('expected_deficit_t'),
-             'Дата решения':a.get('approved_at','')} for a in load(root)['actions']]
+             'Дата решения':a.get('approved_at',''),'Задача Битрикс24':external_text(a.get('external'))} for a in load(root)['actions']]
+
+
+def external_text(external):
+    status=(external or {}).get('status')
+    if status=='created':return f"создана №{external['task_id']} (решение {external['decision']})"
+    if status=='error':return 'не создана: '+external['error']
+    return {'disabled':'интеграция выключена','skipped_stub':'режим заглушек — не отправляется'}.get(status,'—')
 
 
 def approve(root,incident_ids,hour,fingerprint,recommendation,acknowledged=False):
@@ -26,12 +33,23 @@ def approve(root,incident_ids,hour,fingerprint,recommendation,acknowledged=False
     incident_ids=[incident_ids] if isinstance(incident_ids,str) else list(incident_ids)
     incident_id=', '.join(incident_ids)
     identity=f'{incident_id}:{fingerprint}'
-    previous=next((a for a in data['actions'] if a['approval_id']==identity),None)
-    if previous:return previous
-    action={'approval_id':identity,'incident_id':incident_id,'incident_ids':incident_ids,'approved_hour':hour,'fingerprint':fingerprint,
-            'approved_at':datetime.now().isoformat(),'proposal':recommendation['selected'],'mode':'local_simulation'}
-    data['actions'].append(action)
-    save(root/'data/live/approved_actions.json',data)
+    action=next((a for a in data['actions'] if a['approval_id']==identity),None)
+    if action is None:
+        action={'approval_id':identity,'incident_id':incident_id,'incident_ids':incident_ids,'approved_hour':hour,'fingerprint':fingerprint,
+                'approved_at':datetime.now().isoformat(),'proposal':recommendation['selected'],'mode':'local_simulation'}
+        data['actions'].append(action)
+        save(root/'data/live/approved_actions.json',data)
+    # The local record comes first: a Bitrix failure never loses the approval.
+    return send_external(root,identity)
+
+
+def send_external(root,approval_id):
+    """Create the Bitrix task of an approved plan; a created task is never sent twice, a failed one can be retried."""
+    from src import bitrix
+    data=load(root);action=next(a for a in data['actions'] if a['approval_id']==approval_id)
+    if (action.get('external') or {}).get('status')!='created':
+        action['external']=bitrix.send(root,action)
+        save(root/'data/live/approved_actions.json',data)
     return action
 
 
