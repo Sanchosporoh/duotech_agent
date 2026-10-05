@@ -150,7 +150,7 @@ def guard(root):
 
 
 def _check_money():
-    """Money ceiling from the provider's actual cost (OpenRouter, LM Studio); Codex has no per-call price."""
+    """Money ceiling: actual provider cost (OpenRouter) or the price-list estimate (Codex); local LM Studio has no external payments."""
     if _tick is None:return
     ceiling=_tick['limits'].get('max_llm_cost_usd_per_day')
     if ceiling is None:return
@@ -162,13 +162,17 @@ def _check_money():
 
 
 def codex_cost(root,model,used):
-    """Codex CLI runs on a subscription: the cost is an estimate by the API price list (config/llm_prices.json)."""
+    """Estimate by the API price list (config/llm_prices.json) for calls without a provider price (Codex subscription).
+    A model missing from the list is priced at the most expensive entry: an unknown price must not switch the money ceiling off."""
     path=Path(root)/'config'/'llm_prices.json'
     prices=json.loads(path.read_text(encoding='utf-8')).get('models',{}) if path.exists() else {}
-    price=prices.get(model or '')
+    price,basis=prices.get(model or ''),'оценка по прайсу API'
+    if not price and prices:
+        price=max(prices.values(),key=lambda p:(p['input_per_million'],p['output_per_million']))
+        basis='модель не указана или нет в прайсе: оценка по самой дорогой цене прайса'
     if not price or used.get('prompt_tokens') is None:return {}
     cost=used['prompt_tokens']/1e6*price['input_per_million']+(used.get('completion_tokens') or 0)/1e6*price['output_per_million']
-    return {'cost_usd':round(cost,6),'cost_basis':'оценка по прайсу API'}
+    return {'cost_usd':round(cost,6),'cost_basis':basis}
 
 
 def real_llm():
@@ -201,6 +205,7 @@ def ask_codex(root,prompt,schema,cwd):
             else:
                 timeout=llm_client.policy(Path(root)/'config'/'llm_policy.json').get('local_timeout_seconds') if name=='lmstudio' else None
                 answer,meta=llm_client.ask(prompt,schema,model,url,llm_client.api_key() if name=='openrouter' else None,timeout=timeout)
+                if name=='openrouter' and meta.get('cost_usd') is None:meta.update(codex_cost(root,None,meta))
     except Exception:
         _record('llm',started,False,prompt_chars=len(prompt));raise
     _record('llm',started,True,prompt_chars=len(prompt),**{k:v for k,v in (meta if real_llm() else {}).items() if k!='seconds'})

@@ -101,8 +101,11 @@ def e05(root):
 
 
 def e06(root):
+    # Neighbouring measured hours differ (10:00 is 2 t/d better than 13:00), so the gap is a real range.
+    edit_csv(root,'separator.csv',lambda f:f.__setitem__('separator_oil_tpd',f.separator_oil_tpd.where(f.hour!=10,f.separator_oil_tpd+2)))
     ticks(root,14);item=state(root,13,FIRST);need=item.get('plan',{}).get('need',{})
-    ok=item.get('stage')=='awaiting_human_decision' and need.get('estimated_hours')==[11,12]
+    low,high=need.get('net_deficit_range_t') or (0,0)
+    ok=item.get('stage')=='awaiting_human_decision' and need.get('estimated_hours')==[11,12] and high-low>0.01
     return ok,f"стадия {item.get('stage')}, оценённые часы {need.get('estimated_hours')}, диапазон {need.get('net_deficit_range_t')}"
 
 
@@ -131,7 +134,8 @@ def e10(root):
         frame.loc[frame.index[5],'sensor_pressure_bar']='нет связи'
     edit_csv(root,'telemetry.csv',change)
     run=ticks(root,7)[-1]
-    return run['status']=='invalid_input' and calls(run)==(0,0),f"статус {run['status']}: {(run.get('errors') or [''])[0][:70]}"
+    readable=any('sensor_pressure_bar' in e and 'Traceback' not in e for e in run.get('errors') or [])
+    return run['status']=='invalid_input' and calls(run)==(0,0) and readable,f"статус {run['status']}: {(run.get('errors') or [''])[0][:70]}"
 
 
 def e11(root):
@@ -151,14 +155,14 @@ def e12(root):
         return answer
     with patch('src.tool_stubs.codex',side_effect=invented):run=ticks(root,7)[-1]
     stage=run['incidents'].get(FIRST,{}).get('stage');items=escalation.open_items(root)
-    ok=stage=='needs_attention' and any('неизвестные скважины' in i['reason'] for i in items) and calls(run)[1]==0
+    ok=stage=='needs_attention' and any('неизвестные скважины' in i['reason'] and i['current_role']=='инженер-моделист' for i in items) and calls(run)[1]==0
     return ok,f"стадия {stage}, GAP {calls(run)[1]}, эскалация: {items[0]['reason'][:60] if items else '—'}"
 
 
 def e13(root):
     set_config(root,'network_constraints.json',minimum_fbhp_bar=200.)
     run=ticks(root,7)[-1];items=escalation.open_items(root)
-    ok=any('GAP: нет допустимого варианта' in i['reason'] for i in items)
+    ok=any('GAP: нет допустимого варианта' in i['reason'] and i['current_role']=='инженер-моделист' for i in items)
     return ok,f"стадия {run['incidents'].get(FIRST,{}).get('stage')}, эскалаций {len(items)}{': '+items[0]['reason'][:70] if items else ''}"
 
 
@@ -216,7 +220,7 @@ def run_case(case):
             totals['llm_calls']+=run.get('tools',{}).get('llm_calls',0) or 0
             totals['gap_runs']+=run.get('tools',{}).get('gap_runs',0) or 0
             totals['errors']+=bool(run.get('errors')) or run['status']=='failed'
-    return {'id':code,'category':category,'scenario':scenario,'expected':expected,'passed':bool(passed),'observed':observed,
+    return {'id':code,'category':category,'scenario':scenario,'expected':expected,'judge':'код','passed':bool(passed),'observed':observed,
             'ticks':len(journal),**totals,'seconds':round(time.monotonic()-started,1)}
 
 
@@ -230,9 +234,9 @@ def main():
     (args.out/f'{args.label}.json').write_text(json.dumps(results,ensure_ascii=False,indent=1),encoding='utf-8')
     lines=[f'# Eval-набор: прогон «{args.label}»','',
            f"Пройдено {sum(r['passed'] for r in results)} из {len(results)}. Режим: копия проекта, заглушки инструментов.",'',
-           '| Кейс | Тип | Сценарий | Ожидаемый результат | Итог | Наблюдение | Тактов | LLM | GAP |','|---|---|---|---|---|---|---|---|---|']
+           '| Кейс | Тип | Сценарий | Ожидаемый результат | Судья | Итог | Наблюдение | Тактов | LLM | GAP |','|---|---|---|---|---|---|---|---|---|---|']
     for r in results:
-        lines.append(f"| {r['id']} | {r['category']} | {r['scenario']} | {r['expected']} | {'✅' if r['passed'] else '❌'} | {r['observed']} | {r['ticks']} | {r['llm_calls']} | {r['gap_runs']} |")
+        lines.append(f"| {r['id']} | {r['category']} | {r['scenario']} | {r['expected']} | {r['judge']} | {'✅' if r['passed'] else '❌'} | {r['observed']} | {r['ticks']} | {r['llm_calls']} | {r['gap_runs']} |")
     (args.out/f'{args.label}.md').write_text('\n'.join(lines)+'\n',encoding='utf-8')
     for r in results:print(r['id'],'PASS' if r['passed'] else 'FAIL',r['observed'][:110])
     print(f"{sum(r['passed'] for r in results)}/{len(results)}")

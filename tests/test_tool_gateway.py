@@ -66,6 +66,14 @@ class StubCycleTests(unittest.TestCase):
             self.assertEqual(state['model_state']['lift_tables'],[])
             self.assertTrue(any(a.startswith('W_BEL_27_TLBB: проверка PROSPER невозможна') for a in state['model_state']['assumptions']))
 
+    def test_unknown_model_is_priced_at_the_most_expensive_rate(self):
+        used={'prompt_tokens':100_000,'completion_tokens':10_000}
+        self.assertAlmostEqual(tool_gateway.codex_cost(ROOT,'gpt-6-sol',used)['cost_usd'],0.3)
+        for model in (None,'unknown-model'):
+            cost=tool_gateway.codex_cost(ROOT,model,used)
+            self.assertAlmostEqual(cost['cost_usd'],1.5)
+            self.assertIn('самой дорогой',cost['cost_basis'])
+
 
 if __name__=='__main__':
     unittest.main()

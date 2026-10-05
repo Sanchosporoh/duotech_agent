@@ -1,0 +1,44 @@
+{
+  "run_id": "20260928-084730-a38163",
+  "hour": 6,
+  "started_at": "2026-09-28T08:47:30",
+  "tool_backend": "petex",
+  "incidents": {
+    "INC-20260914-0600": {
+      "stage": "awaiting_model_state",
+      "recompute": "full",
+      "reason": "Traceback (most recent call last):\n  File \"C:\\work-scripts\\First_AI_agent\\tools\\export_live_vlp.py\", line 53, in <module>\n    main()\n    ~~~~^^\n  File \"C:\\work-scripts\\First_AI_agent\\tools\\export_live_vlp.py\", line 39, in main\n    count=int(server.get_value('PROSPER.OUT.VLP.Results.COUNT'))\n              ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\work-scripts\\First_AI_agent\\petex_passport_ima\\open_server.py\", line 37, in get_value\n    raise OpenServerError(self.error)\nopen_server.OpenServerError: Variable name was not found\n",
+      "network": []
+    }
+  },
+  "status": "processed",
+  "tools": {
+    "llm_calls": 1,
+    "gap_runs": 0,
+    "prosper_runs": 2,
+    "llm_tokens_reported": null,
+    "llm_models": [
+      "Codex CLI"
+    ],
+    "llm_cost_usd": null,
+    "llm_prompt_tokens_estimate": 5385,
+    "llm_cost_rub": null,
+    "tool_seconds": {
+      "llm": 65.905,
+      "fit_live_prosper": 15.307,
+      "export_live_vlp": 227.133
+    },
+    "failed_calls": [
+      {
+        "tool": "export_live_vlp",
+        "seconds": 227.133,
+        "ok": false
+      }
+    ],
+    "limit_exceeded": null
+  },
+  "duration_seconds": 309.335,
+  "slow": false,
+  "finished_at": "2026-09-28T08:52:39",
+  "escalations": []
+}

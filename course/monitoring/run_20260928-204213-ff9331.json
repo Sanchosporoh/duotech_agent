@@ -1,0 +1,57 @@
+{
+  "run_id": "20260928-204213-ff9331",
+  "hour": 3,
+  "started_at": "2026-09-28T20:42:13",
+  "tool_backend": "petex",
+  "incidents": {
+    "INC-20260914-0300": {
+      "stage": "awaiting_human_decision",
+      "recompute": "full",
+      "reason": "Сеть рассчитана. Характеристики предварительные; невязки с сепаратором и ограничения показаны отдельно. Исполнение не разрешено.",
+      "network": [
+        {
+          "title": "Меньше воздействий",
+          "problems": []
+        },
+        {
+          "title": "Распределённое воздействие",
+          "problems": []
+        },
+        {
+          "title": "Компромисс",
+          "problems": []
+        },
+        {
+          "title": "Проверка всех доступных регулирований",
+          "problems": []
+        }
+      ]
+    }
+  },
+  "status": "processed",
+  "tools": {
+    "llm_calls": 2,
+    "gap_runs": 3,
+    "prosper_runs": 0,
+    "llm_tokens_reported": {
+      "prompt": 49541,
+      "completion": 4235
+    },
+    "llm_models": [
+      "Codex CLI · gpt-6-sol"
+    ],
+    "llm_cost_usd": 0.141432,
+    "llm_prompt_tokens_estimate": 11553,
+    "llm_cost_rub": null,
+    "tool_seconds": {
+      "llm": 148.719,
+      "run_live_gap": 116.894
+    },
+    "failed_calls": [],
+    "limit_exceeded": null
+  },
+  "duration_seconds": 266.295,
+  "slow": false,
+  "finished_at": "2026-09-28T20:46:39",
+  "escalations": []
+}

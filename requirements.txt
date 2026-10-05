@@ -3,4 +3,5 @@ numpy
 streamlit
 altair
 pywin32; platform_system == "Windows"
-
+jsonschema
+requests
