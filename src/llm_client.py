@@ -66,7 +66,30 @@ def _strict(schema):
     return schema
 
 
-def ask(prompt,schema,model,base_url,key=None,timeout=None):
+def _read_whole(response):
+    data=response.json()
+    return data['choices'][0]['message']['content'],data.get('usage') or {}
+
+
+def _read_stream(response,model,started,timeout):
+    """Server-sent events: the answer is the sum of content deltas; reasoning deltas only keep the line alive."""
+    parts,usage=[],{}
+    # Bytes, decoded per line: event-stream has no charset, and text decoding would split Cyrillic on U+0085.
+    for raw in response.iter_lines():
+        if time.monotonic()-started>timeout:
+            response.close();raise requests.Timeout()
+        line=raw.decode('utf-8') if isinstance(raw,bytes) else raw
+        if not line.startswith('data:'):continue
+        chunk=line[5:].strip()
+        if chunk=='[DONE]':break
+        event=json.loads(chunk)
+        usage=event.get('usage') or usage
+        for choice in event.get('choices') or []:
+            parts.append((choice.get('delta') or {}).get('content') or '')
+    return ''.join(parts),usage
+
+
+def ask(prompt,schema,model,base_url,key=None,timeout=None,stream=False):
     """Return (answer, meta). meta: model, seconds, prompt/completion tokens, cost in USD (if reported)."""
     headers={'Content-Type':'application/json'}
     if key:headers['Authorization']='Bearer '+key
@@ -76,22 +99,24 @@ def ask(prompt,schema,model,base_url,key=None,timeout=None):
     started=time.monotonic()
     # A local model on the company server is slower than a cloud one: the limit is set by LLM_TIMEOUT_SECONDS.
     timeout=timeout or float(os.environ.get('LLM_TIMEOUT_SECONDS',180))
+    if stream:
+        # A slow local model answers for many minutes; a silent connection is cut by the network after ~10 min idle
+        # (two calls broke at exactly 600 s, 06.10). Streaming keeps bytes flowing while the model reasons.
+        body['stream']=True;body['stream_options']={'include_usage':True}
     try:
-        response=requests.post(base_url+'/chat/completions',headers=headers,json=body,timeout=timeout)
+        response=requests.post(base_url+'/chat/completions',headers=headers,json=body,timeout=timeout,stream=stream)
+        if response.status_code!=200:
+            if response.status_code==403 and 'security policy' in response.text.lower():
+                raise RuntimeError(f'LLM {model}: провайдер отказал в доступе (HTTP 403, «Access denied by security policy») — ограничение сети или политики провайдера')
+            raise RuntimeError(f'LLM {model}: HTTP {response.status_code}: {response.text[:300]}')
+        content,usage=_read_stream(response,model,started,timeout) if stream else _read_whole(response)
     except requests.Timeout as exc:
         raise RuntimeError(f'LLM {model}: сервер не ответил за {timeout:g} с') from exc
     except requests.RequestException as exc:
         raise RuntimeError(f'LLM {model}: сервер LLM недоступен — соединение разорвано или отклонено; проверьте, что сервер запущен и модель загружена') from exc
     seconds=round(time.monotonic()-started,2)
-    if response.status_code!=200:
-        if response.status_code==403 and 'security policy' in response.text.lower():
-            raise RuntimeError(f'LLM {model}: провайдер отказал в доступе (HTTP 403, «Access denied by security policy») — ограничение сети или политики провайдера')
-        raise RuntimeError(f'LLM {model}: HTTP {response.status_code}: {response.text[:300]}')
-    data=response.json()
-    usage=data.get('usage') or {}
     meta={'model':model,'seconds':seconds,'prompt_tokens':usage.get('prompt_tokens'),
           'completion_tokens':usage.get('completion_tokens'),'cost_usd':usage.get('cost')}
-    content=data['choices'][0]['message']['content']
     try:
         answer=json.loads(content)
     except (TypeError,ValueError) as exc:

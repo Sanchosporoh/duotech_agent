@@ -49,7 +49,7 @@ def score_sets(answer,case):
 
 def run_case(model,prompt,schema,key,base_url=llm_client.OPENROUTER_URL):
     try:
-        answer,meta=llm_client.ask(prompt,schema,model,base_url,key)
+        answer,meta=llm_client.ask(prompt,schema,model,base_url,key,stream=key is None)
         return answer,meta,None
     except Exception as exc:  # the comparison records failures instead of stopping
         text=str(exc)
