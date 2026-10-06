@@ -35,6 +35,16 @@ class LlmClientTests(unittest.TestCase):
         self.assertEqual((meta['prompt_tokens'],meta['completion_tokens'],meta['cost_usd']),(1000,200,0.0003))
         self.assertEqual(answer,ANSWER)
 
+    def test_dropped_connection_is_an_llm_error_not_petex(self):
+        import requests
+        from src import license_retry
+        reset=requests.ConnectionError("('Connection aborted.', ConnectionResetError(10054, 'reset'))")
+        with patch('src.llm_client.requests.post',side_effect=reset), self.assertRaises(RuntimeError) as caught:
+            llm_client.ask('prompt',SCHEMA,'gpt-oss','http://server:1234/v1')
+        text=license_retry.readable(str(caught.exception))
+        self.assertTrue(text.startswith('LLM gpt-oss: сервер LLM недоступен'))
+        self.assertNotIn('PetEx',text)
+
     def test_too_few_hypotheses_are_rejected_locally(self):
         short=dict(ANSWER,hypotheses=ANSWER['hypotheses'][:2])
         body={'choices':[{'message':{'content':json.dumps(short)}}],'usage':{}}

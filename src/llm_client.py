@@ -76,7 +76,12 @@ def ask(prompt,schema,model,base_url,key=None,timeout=None):
     started=time.monotonic()
     # A local model on the company server is slower than a cloud one: the limit is set by LLM_TIMEOUT_SECONDS.
     timeout=timeout or float(os.environ.get('LLM_TIMEOUT_SECONDS',180))
-    response=requests.post(base_url+'/chat/completions',headers=headers,json=body,timeout=timeout)
+    try:
+        response=requests.post(base_url+'/chat/completions',headers=headers,json=body,timeout=timeout)
+    except requests.Timeout as exc:
+        raise RuntimeError(f'LLM {model}: сервер не ответил за {timeout:g} с') from exc
+    except requests.RequestException as exc:
+        raise RuntimeError(f'LLM {model}: сервер LLM недоступен — соединение разорвано или отклонено; проверьте, что сервер запущен и модель загружена') from exc
     seconds=round(time.monotonic()-started,2)
     if response.status_code!=200:
         if response.status_code==403 and 'security policy' in response.text.lower():

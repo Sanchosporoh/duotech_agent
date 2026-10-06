@@ -41,7 +41,8 @@ def readable(message):
     text=match.group(1) if match else last
     for marker,explanation in OPENSERVER_MESSAGES.items():
         if marker in text:return explanation
-    return 'Ошибка расчёта PetEx: '+text
+    # LLM failures carry their own source; only PetEx failures get the PetEx label.
+    return text if text.startswith('LLM ') else 'Ошибка расчёта PetEx: '+text
 
 
 def _retry_marker(attempt):
