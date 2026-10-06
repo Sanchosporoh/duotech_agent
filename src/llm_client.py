@@ -96,5 +96,10 @@ def ask(prompt,schema,model,base_url,key=None,timeout=None):
         answer=json.loads(content)
     except (TypeError,ValueError) as exc:
         raise ValueError(f'LLM {model}: ответ не JSON') from exc
-    jsonschema.validate(answer,schema)   # full schema, including item counts
+    try:
+        jsonschema.validate(answer,schema)   # full schema, including item counts
+    except jsonschema.ValidationError as exc:
+        # A bad answer, not a tool failure: one readable line, the answer itself is not dumped to the engineer.
+        where='.'.join(str(p) for p in exc.absolute_path) or 'ответ'
+        raise ValueError(f'LLM {model}: ответ не прошёл проверку схемы ({where}: {exc.validator} {exc.validator_value})') from exc
     return answer,meta

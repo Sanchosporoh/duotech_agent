@@ -49,7 +49,10 @@ class LlmClientTests(unittest.TestCase):
         short=dict(ANSWER,hypotheses=ANSWER['hypotheses'][:2])
         body={'choices':[{'message':{'content':json.dumps(short)}}],'usage':{}}
         with patch('src.llm_client.requests.post',return_value=Response(200,body)):
-            with self.assertRaises(Exception):llm_client.ask('p',SCHEMA,'m','https://x/v1')
+            with self.assertRaises(ValueError) as caught:llm_client.ask('p',SCHEMA,'m','https://x/v1')
+        from src import license_retry
+        text=license_retry.readable(str(caught.exception))
+        self.assertEqual(text,'LLM m: ответ не прошёл проверку схемы (hypotheses: minItems 4)')
 
     def test_http_error_is_reported_without_the_key(self):
         with patch('src.llm_client.requests.post',return_value=Response(401,{'error':'bad key'})):
